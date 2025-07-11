@@ -7,18 +7,14 @@ const sensorDot = document.getElementById('sensor-dot');
 const noteDisplay = document.getElementById('note-display');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
-const chordFormulas = {
-    'C':  ['C', 'E', 'G'], 'G':  ['G', 'B', 'D'], 'Am': ['A', 'C', 'E'], 'F':  ['F', 'A', 'C'],
-    'Dm': ['D', 'F', 'A'], 'A':  ['A', 'C#', 'E'], 'D':  ['D', 'F#', 'A'], 'E7': ['E', 'G#', 'B', 'D']
-};
-const chordList = Object.keys(chordFormulas);
+// --- 変更: 単音のリストに変更 ---
+const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+let currentNote = ''; // 変数名を currentChord から currentNote に変更
 
 const DURATION = 10;
-let currentChord = '';
 let analyserNode, pitchy, audioContext;
 let gameLoopId, roundStartTime;
 let isPaused = true;
-let correctHitCount = 0;
 
 resultMessage.textContent = "Click or Press Space to Start";
 drawSpectrum();
@@ -34,7 +30,7 @@ function togglePause() {
         cancelAnimationFrame(gameLoopId);
         gameLoopId = null;
         if (audioContext && audioContext.state === 'running') {
-            audioContext.suspend(); // マイクへのアクセスを一時停止
+            audioContext.suspend();
         }
         resultMessage.textContent = 'Paused';
         resultMessage.className = 'display';
@@ -50,7 +46,6 @@ function togglePause() {
 function startNextRound() {
     if (isPaused) return;
     
-    correctHitCount = 0;
     resultMessage.textContent = '';
     sensorDot.className = '';
     noteDisplay.textContent = '--';
@@ -59,16 +54,15 @@ function startNextRound() {
     chordDisplay.textContent = ''; 
 
     setTimeout(() => {
-        let newChord;
-        do { newChord = chordList[Math.floor(Math.random() * chordList.length)]; } while (newChord === currentChord);
-        currentChord = newChord;
-        chordDisplay.textContent = currentChord;
+        let newNote;
+        // --- 変更: noteList からランダムに選ぶ ---
+        do { newNote = noteList[Math.floor(Math.random() * noteList.length)]; } while (newNote === currentNote);
+        currentNote = newNote;
+        chordDisplay.textContent = currentNote; // 表示するのも単音
         chordDisplay.classList.add('flipping');
     }, 100);
 
-    if (!audioContext) {
-        initAudio();
-    }
+    if (!audioContext) initAudio();
     
     roundStartTime = performance.now();
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
@@ -104,35 +98,27 @@ function stopTraining(message, className) {
     }
 }
 
-// --- 変更: デバッグ表示を常に更新する ---
+// --- 変更: 単音を判定するシンプルなロジック ---
 function checkPitch() {
     if (!analyserNode) return;
     try {
         const [pitch, clarity] = pitchy.getPitch();
 
-        // 常に現在の分析状況を表示する
+        // 常に分析状況を表示
         if (pitch) {
             noteDisplay.textContent = `${pitchy.getNoteFromPitch(pitch)} (${clarity.toFixed(2)})`;
         } else {
-            // 音名が特定できない場合でも、明瞭度だけは表示する
             noteDisplay.textContent = `Clarity: ${clarity.toFixed(2)}`;
         }
 
-        // 正解判定ロジック
-        if (pitch && clarity > 0.85) {
-            const note = pitchy.getNoteFromPitch(pitch).slice(0, -1);
-            const correctNotes = chordFormulas[currentChord];
-            
-            if (correctNotes) {
-                if (correctNotes.includes(note)) {
-                    correctHitCount++;
-                    flashSensor('correct');
-                    if (correctHitCount >= 3) {
-                        stopTraining('nice!', 'correct');
-                    }
-                } else {
-                    flashSensor('incorrect');
-                }
+        // 正解判定（単音なので、ヒットカウンターは不要）
+        if (pitch && clarity > 0.92) { // 単音なので、基準値を少し上げる
+            const detectedNote = pitchy.getNoteFromPitch(pitch).slice(0, 1); // "C#4" -> "C" (#は今は無視)
+
+            if (detectedNote === currentNote) {
+                stopTraining('nice!', 'correct');
+            } else {
+                flashSensor('incorrect');
             }
         }
     } catch (error) {
