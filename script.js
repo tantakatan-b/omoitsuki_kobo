@@ -8,7 +8,7 @@ let analyserNode;
 let dataArray;
 
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const detectedNoteHistory = []; // 追加: 音の履歴を保存する配列
+const detectedNoteHistory = [];
 
 startButton.addEventListener('click', () => {
     if (audioContext) return;
@@ -51,7 +51,6 @@ function drawSpectrum() {
     }
 }
 
-// --- 変更: 多数決で判定するロジック ---
 function detectPitch() {
     if (!analyserNode) return;
     
@@ -80,14 +79,13 @@ function detectPitch() {
             
             // 履歴に追加
             detectedNoteHistory.push(noteName);
-            if (detectedNoteHistory.length > 15) {
-                detectedNoteHistory.shift(); // 古いものから削除
+            // --- 変更: 履歴の数を7に減らして、判定を甘くする ---
+            if (detectedNoteHistory.length > 7) {
+                detectedNoteHistory.shift();
             }
 
-            // 多数決で最も多い音を決定
             const mostFrequentNote = getMostFrequentNote(detectedNoteHistory);
             
-            // デバッグ表示を更新
             noteDisplay.textContent = `${mostFrequentNote} (Detected: ${noteName})`;
         }
     } else {
@@ -97,7 +95,6 @@ function detectPitch() {
     requestAnimationFrame(detectPitch);
 }
 
-// 配列の中で最も頻繁に出現する要素を返す関数
 function getMostFrequentNote(arr) {
     if (arr.length === 0) return null;
     const counts = arr.reduce((acc, value) => {
@@ -106,7 +103,6 @@ function getMostFrequentNote(arr) {
     }, {});
     return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
 }
-
 
 function frequencyToNoteName(frequency) {
     const midiNum = 69 + 12 * Math.log2(frequency / 440);
