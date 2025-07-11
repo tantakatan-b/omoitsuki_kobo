@@ -1,112 +1,107 @@
 // HTMLの要素を取得
 const resultMessage = document.getElementById('result-message');
 const chordDisplay = document.getElementById('chord-display');
-const pieTimerFill = document.getElementById('pie-timer-fill');
 const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
-const noteDisplay = document.getElementById('note-display');
+const bpmInput = document.getElementById('bpm-input');
+const metronomeDots = document.querySelectorAll('.beat-dot');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
+// 定数と変数
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-let currentNote = '';
-
-const DURATION = 10;
-let audioContext;
-let analyserNode;
-let gameLoopId, roundStartTime;
+let currentNote = 'Note';
+let audioContext, analyserNode;
 let isPaused = true;
-const detectedNoteHistory = []; // 音の履歴を保存する配列
+const detectedNoteHistory = [];
 
+// --- BPMとメトロノーム関連の変数 ---
+let bpm = 120;
+let beatDuration = 60000 / bpm; // 1拍のミリ秒
+let lastBeatTime = 0;
+let currentBeat = 0;
+
+// --- 初期化 ---
 resultMessage.textContent = "Click or Press Space to Start";
-drawSpectrum(); // 待機状態のアナライザを初回に描画
+chordDisplay.textContent = 'Note';
+drawSpectrum();
 
+// --- イベントリスナー ---
 document.body.addEventListener('click', togglePause);
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') { e.preventDefault(); togglePause(); }
 });
+bpmInput.addEventListener('input', (e) => {
+    bpm = parseInt(e.target.value, 10);
+    if (bpm < 40) bpm = 40;
+    if (bpm > 240) bpm = 240;
+    beatDuration = 60000 / bpm;
+});
 
+// --- メインロジック ---
 function togglePause() {
     isPaused = !isPaused;
     if (isPaused) {
-        cancelAnimationFrame(gameLoopId);
-        gameLoopId = null;
         if (audioContext && audioContext.state === 'running') audioContext.suspend();
         resultMessage.textContent = 'Paused';
-        resultMessage.className = 'display';
         sensorDot.className = '';
     } else {
         if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-        startNextRound();
+        if (!audioContext) initAudio();
+        lastBeatTime = performance.now(); // タイマーをリセット
+        requestAnimationFrame(update);
     }
-}
-
-function startNextRound() {
-    if (isPaused) return;
-    
-    resultMessage.textContent = '';
-    sensorDot.className = '';
-    noteDisplay.textContent = '--';
-    
-    chordDisplay.classList.remove('flipping');
-    chordDisplay.textContent = ''; 
-
-    setTimeout(() => {
-        let newNote;
-        do { newNote = noteList[Math.floor(Math.random() * noteList.length)]; } while (newNote === currentNote);
-        currentNote = newNote;
-        chordDisplay.textContent = currentNote;
-        chordDisplay.classList.add('flipping');
-    }, 100);
-
-    if (!audioContext) initAudio();
-    
-    roundStartTime = performance.now();
-    if(gameLoopId) cancelAnimationFrame(gameLoopId);
-    gameLoopId = requestAnimationFrame(update);
 }
 
 function update(currentTime) {
     if (isPaused) return;
-    const elapsedTime = (currentTime - roundStartTime) / 1000;
-    const progress = Math.min(elapsedTime / DURATION, 1);
-    updatePieTimer(progress);
+
+    // BPMに基づくメトロノーム処理
+    if (currentTime - lastBeatTime > beatDuration) {
+        lastBeatTime = currentTime;
+        currentBeat = (currentBeat % 4) + 1;
+        updateMetronomeDots(currentBeat);
+
+        // 4拍ごとにコードを切り替える
+        if (currentBeat === 1) {
+            changeNote();
+        }
+    }
+
     drawSpectrum();
-    if (progress >= 1) {
-        stopTraining('Oops!', 'incorrect');
-        return;
-    }
-    gameLoopId = requestAnimationFrame(update);
+    requestAnimationFrame(update);
 }
 
-function stopTraining(message, className) {
-    if (!gameLoopId) return;
-    
-    cancelAnimationFrame(gameLoopId);
-    gameLoopId = null;
-
-    resultMessage.textContent = message;
-    resultMessage.className = `display ${className}`;
-    sensorDot.className = className;
-    
-    if (!isPaused) {
-        setTimeout(startNextRound, 1500);
-    }
+function changeNote() {
+    let newNote;
+    do { newNote = noteList[Math.floor(Math.random() * noteList.length)]; } while (newNote === currentNote);
+    currentNote = newNote;
+    chordDisplay.textContent = currentNote;
 }
 
+function updateMetronomeDots(beat) {
+    metronomeDots.forEach((dot, index) => {
+        if (index < beat) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
+}
+
+// --- 音声認識ロジック ---
 function initAudio() {
     audioContext = new AudioContext();
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
         .then(stream => {
-            noteDisplay.textContent = 'MIC OK';
             const source = audioContext.createMediaStreamSource(stream);
             analyserNode = audioContext.createAnalyser();
             analyserNode.fftSize = 2048;
             source.connect(analyserNode);
-            detectPitch(); // 認識ループを開始
+            detectPitch();
         })
         .catch(err => {
-            noteDisplay.textContent = `Error: ${err.name}`;
+            resultMessage.textContent = `Error: ${err.name}`;
         });
 }
 
@@ -114,17 +109,16 @@ function detectPitch() {
     if (!analyserNode || isPaused) {
         requestAnimationFrame(detectPitch);
         return;
-    };
+    }
     
     const bufferLength = analyserNode.frequencyBinCount;
     const buffer = new Float32Array(bufferLength);
     analyserNode.getFloatTimeDomainData(buffer);
-
     const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / bufferLength);
 
     if (rms > 0.01) {
-        let bestCorrelation = 0;
-        let bestLag = -1;
+        // ... (ピッチ検出アルゴリズムは変更なし) ...
+        let bestCorrelation = 0, bestLag = -1;
         for (let lag = 40; lag < 1000; lag++) {
             let correlation = 0;
             for (let i = 0; i < bufferLength - lag; i++) {
@@ -137,20 +131,17 @@ function detectPitch() {
             const noteName = frequencyToNoteName(frequency);
             detectedNoteHistory.push(noteName);
             if (detectedNoteHistory.length > 7) detectedNoteHistory.shift();
-
+            
             const mostFrequentNote = getMostFrequentNote(detectedNoteHistory);
-            noteDisplay.textContent = `${mostFrequentNote} (Detected: ${noteName})`;
 
-            // 正解判定
-            if (gameLoopId && mostFrequentNote.charAt(0) === currentNote) {
+            // 判定ロジック
+            if (mostFrequentNote.charAt(0) === currentNote) {
                 flashSensor('correct');
-                stopTraining('nice!', 'correct');
+            } else {
+                flashSensor('incorrect');
             }
         }
-    } else {
-        noteDisplay.textContent = 'Listening...';
     }
-
     requestAnimationFrame(detectPitch);
 }
 
@@ -162,7 +153,8 @@ function getMostFrequentNote(arr) {
 
 function flashSensor(className) {
     sensorDot.className = className;
-    setTimeout(() => { sensorDot.className = ''; }, 200);
+    // 色は次の拍が来るまで維持しても良いし、すぐ消しても良い
+    // 今回は次の判定が来るまで維持される
 }
 
 function frequencyToNoteName(frequency) {
@@ -170,25 +162,13 @@ function frequencyToNoteName(frequency) {
     return noteStrings[Math.round(midiNum) % 12];
 }
 
-function updatePieTimer(progress) {
-    const angle = progress * 360;
-    const x = 10 + Math.cos((angle - 90) * Math.PI / 180) * 8;
-    const y = 10 + Math.sin((angle - 90) * Math.PI / 180) * 8;
-    if (isNaN(x) || isNaN(y)) return;
-    const largeArcFlag = angle > 180 ? 1 : 0;
-    const d = `M 10,10 L 10,2 A 8,8 0 ${largeArcFlag},1 ${x},${y} Z`;
-    
-    if (progress < 1) pieTimerFill.setAttribute('d', d);
-    else pieTimerFill.setAttribute('d', 'M 10,10 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0');
-}
-
 function drawSpectrum() {
     if (!analyserNode) return;
     const bufferLength = analyserNode.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     analyserNode.getByteFrequencyData(dataArray);
-    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-    const barWidth = (canvas.width / bufferLength) * 2.5;
+    canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+    const barWidth = (spectrumCanvas.width / bufferLength) * 2.5;
     let x = 0;
     for (let i = 0; i < bufferLength; i++) {
         const barHeight = dataArray[i];
