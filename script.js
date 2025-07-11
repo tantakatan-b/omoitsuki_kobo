@@ -20,9 +20,8 @@ let gameLoopId, roundStartTime;
 let isPaused = true;
 let correctHitCount = 0;
 
-// 初期描画
 resultMessage.textContent = "Click or Press Space to Start";
-drawSpectrum(); // 待機状態のアナライザを初回に描画
+drawSpectrum();
 
 document.body.addEventListener('click', togglePause);
 window.addEventListener('keydown', (e) => {
@@ -70,19 +69,12 @@ function startNextRound() {
 
 function update(currentTime) {
     if (isPaused) return;
-
     const elapsedTime = (currentTime - roundStartTime) / 1000;
     const progress = Math.min(elapsedTime / DURATION, 1);
-
     updatePieTimer(progress);
     drawSpectrum();
-
     if (analyserNode) checkPitch();
-
-    if (progress >= 1) {
-        stopTraining('Oops!', 'incorrect');
-        return;
-    }
+    if (progress >= 1) { stopTraining('Oops!', 'incorrect'); return; }
     gameLoopId = requestAnimationFrame(update);
 }
 
@@ -101,19 +93,44 @@ function stopTraining(message, className) {
     }
 }
 
-function checkPitch() { /* ... 変更なし ... */ }
-function flashSensor(className) { /* ... 変更なし ... */ }
-function initAudio() { /* ... 変更なし ... */ }
+function checkPitch() {
+    if (!analyserNode) return;
+    try {
+        const [pitch, clarity] = pitchy.getPitch();
+        if (!pitch) return;
 
-// --- 変更: 致命的なエラーを修正 ---
+        if (clarity > 0.7) {
+            noteDisplay.textContent = `${pitchy.getNoteFromPitch(pitch)} (${clarity.toFixed(2)})`;
+        }
+        if (clarity > 0.85) {
+            const note = pitchy.getNoteFromPitch(pitch).slice(0, -1);
+            const correctNotes = chordFormulas[currentChord];
+            if (correctNotes && correctNotes.includes(note)) {
+                correctHitCount++;
+                flashSensor('correct');
+                if (correctHitCount >= 3) {
+                    stopTraining('nice!', 'correct');
+                }
+            } else {
+                flashSensor('incorrect');
+            }
+        }
+    } catch (error) { console.error("Error in checkPitch:", error); }
+}
+
+function flashSensor(className) {
+    sensorDot.classList.add(className);
+    setTimeout(() => {
+        sensorDot.classList.remove(className);
+    }, 200);
+}
+
 function updatePieTimer(progress) {
     const angle = progress * 360;
     const x = 10 + Math.cos((angle - 90) * Math.PI / 180) * 8;
-    const y = 10 + Math.sin((angle - 90) * Math.PI / 180) * 8; // Math.I を Math.PI に修正
+    const y = 10 + Math.sin((angle - 90) * Math.PI / 180) * 8;
+    if (isNaN(x) || isNaN(y)) return;
     const largeArcFlag = angle > 180 ? 1 : 0;
-    
-    if (isNaN(x) || isNaN(y)) return; // 計算エラーを防ぐ
-
     const d = `M 10,10 L 10,2 A 8,8 0 ${largeArcFlag},1 ${x},${y} Z`;
     
     if (progress < 1) {
@@ -147,4 +164,23 @@ function drawSpectrum() {
             x += barWidth + 1;
         }
     }
+}
+
+// --- 変更: マイク呼び出しの成功・失敗を画面に表示する ---
+function initAudio() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            // 成功した場合
+            noteDisplay.textContent = 'MIC OK';
+            audioContext = new AudioContext();
+            const microphoneNode = audioContext.createMediaStreamSource(stream);
+            analyserNode = audioContext.createAnalyser();
+            microphoneNode.connect(analyserNode);
+            pitchy = new Pitchy(analyserNode);
+        })
+        .catch(err => {
+            // 失敗した場合
+            noteDisplay.textContent = `MIC Error: ${err.name}`;
+            console.error("マイクエラー:", err);
+        });
 }
