@@ -3,7 +3,6 @@ const resultMessage = document.getElementById('result-message');
 const chordDisplay = document.getElementById('chord-display');
 const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
-const bpmInput = document.getElementById('bpm-input');
 const metronomeDots = document.querySelectorAll('.beat-dot');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
@@ -15,9 +14,8 @@ let audioContext, analyserNode;
 let isPaused = true;
 const detectedNoteHistory = [];
 
-// --- BPMとメトロノーム関連の変数 ---
 let bpm = 120;
-let beatDuration = 60000 / bpm; // 1拍のミリ秒
+let beatDuration = 60000 / bpm;
 let lastBeatTime = 0;
 let currentBeat = 0;
 
@@ -31,12 +29,6 @@ document.body.addEventListener('click', togglePause);
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') { e.preventDefault(); togglePause(); }
 });
-bpmInput.addEventListener('input', (e) => {
-    bpm = parseInt(e.target.value, 10);
-    if (bpm < 40) bpm = 40;
-    if (bpm > 240) bpm = 240;
-    beatDuration = 60000 / bpm;
-});
 
 // --- メインロジック ---
 function togglePause() {
@@ -44,31 +36,38 @@ function togglePause() {
     if (isPaused) {
         if (audioContext && audioContext.state === 'running') audioContext.suspend();
         resultMessage.textContent = 'Paused';
-        sensorDot.className = '';
     } else {
-        if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-        if (!audioContext) initAudio();
-        lastBeatTime = performance.now(); // タイマーをリセット
+        if (!audioContext) {
+            initAudio();
+        } else if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        resultMessage.textContent = '';
+        lastBeatTime = performance.now();
         requestAnimationFrame(update);
     }
 }
 
+// --- 変更: 単一のループにすべてを統合 ---
 function update(currentTime) {
     if (isPaused) return;
 
-    // BPMに基づくメトロノーム処理
+    // 1. BPMメトロノーム処理
     if (currentTime - lastBeatTime > beatDuration) {
         lastBeatTime = currentTime;
         currentBeat = (currentBeat % 4) + 1;
         updateMetronomeDots(currentBeat);
-
-        // 4拍ごとにコードを切り替える
         if (currentBeat === 1) {
             changeNote();
         }
     }
 
+    // 2. アナライザ描画
     drawSpectrum();
+
+    // 3. 音声認識
+    detectPitch();
+
     requestAnimationFrame(update);
 }
 
@@ -81,11 +80,7 @@ function changeNote() {
 
 function updateMetronomeDots(beat) {
     metronomeDots.forEach((dot, index) => {
-        if (index < beat) {
-            dot.classList.add('active');
-        } else {
-            dot.classList.remove('active');
-        }
+        dot.classList.toggle('active', index < beat);
     });
 }
 
@@ -98,7 +93,6 @@ function initAudio() {
             analyserNode = audioContext.createAnalyser();
             analyserNode.fftSize = 2048;
             source.connect(analyserNode);
-            detectPitch();
         })
         .catch(err => {
             resultMessage.textContent = `Error: ${err.name}`;
@@ -106,10 +100,7 @@ function initAudio() {
 }
 
 function detectPitch() {
-    if (!analyserNode || isPaused) {
-        requestAnimationFrame(detectPitch);
-        return;
-    }
+    if (!analyserNode) return;
     
     const bufferLength = analyserNode.frequencyBinCount;
     const buffer = new Float32Array(bufferLength);
@@ -117,7 +108,6 @@ function detectPitch() {
     const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / bufferLength);
 
     if (rms > 0.01) {
-        // ... (ピッチ検出アルゴリズムは変更なし) ...
         let bestCorrelation = 0, bestLag = -1;
         for (let lag = 40; lag < 1000; lag++) {
             let correlation = 0;
@@ -134,7 +124,6 @@ function detectPitch() {
             
             const mostFrequentNote = getMostFrequentNote(detectedNoteHistory);
 
-            // 判定ロジック
             if (mostFrequentNote.charAt(0) === currentNote) {
                 flashSensor('correct');
             } else {
@@ -142,7 +131,6 @@ function detectPitch() {
             }
         }
     }
-    requestAnimationFrame(detectPitch);
 }
 
 function getMostFrequentNote(arr) {
@@ -153,11 +141,11 @@ function getMostFrequentNote(arr) {
 
 function flashSensor(className) {
     sensorDot.className = className;
-    // 色は次の拍が来るまで維持しても良いし、すぐ消しても良い
-    // 今回は次の判定が来るまで維持される
+    setTimeout(() => { sensorDot.className = ''; }, 200);
 }
 
 function frequencyToNoteName(frequency) {
+    const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const midiNum = 69 + 12 * Math.log2(frequency / 440);
     return noteStrings[Math.round(midiNum) % 12];
 }
@@ -172,7 +160,7 @@ function drawSpectrum() {
     let x = 0;
     for (let i = 0; i < bufferLength; i++) {
         const barHeight = dataArray[i];
-        canvasCtx.fillStyle = 'rgb(100, 100, 100)';
+        canvasCtx.fillStyle = 'rgb(150, 150, 150)'; // アナライザの色を少し薄く
         canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
         x += barWidth + 1;
     }
