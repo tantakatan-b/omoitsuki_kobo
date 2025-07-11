@@ -37,6 +37,10 @@ function togglePause() {
         resultMessage.className = 'display';
         sensorDot.className = '';
     } else {
+        // --- 変更: audioContextが一時停止状態なら再開させる ---
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
         startNextRound();
     }
 }
@@ -99,23 +103,27 @@ function checkPitch() {
         const [pitch, clarity] = pitchy.getPitch();
         if (!pitch) return;
 
-        if (clarity > 0.7) {
-            noteDisplay.textContent = `${pitchy.getNoteFromPitch(pitch)} (${clarity.toFixed(2)})`;
-        }
+        noteDisplay.textContent = `${pitchy.getNoteFromPitch(pitch)} (${clarity.toFixed(2)})`;
+
         if (clarity > 0.85) {
             const note = pitchy.getNoteFromPitch(pitch).slice(0, -1);
             const correctNotes = chordFormulas[currentChord];
-            if (correctNotes && correctNotes.includes(note)) {
-                correctHitCount++;
-                flashSensor('correct');
-                if (correctHitCount >= 3) {
-                    stopTraining('nice!', 'correct');
+            
+            if (correctNotes) {
+                if (correctNotes.includes(note)) {
+                    correctHitCount++;
+                    flashSensor('correct');
+                    if (correctHitCount >= 3) {
+                        stopTraining('nice!', 'correct');
+                    }
+                } else {
+                    flashSensor('incorrect');
                 }
-            } else {
-                flashSensor('incorrect');
             }
         }
-    } catch (error) { console.error("Error in checkPitch:", error); }
+    } catch (error) {
+        console.error("Error in checkPitch:", error);
+    }
 }
 
 function flashSensor(className) {
@@ -141,6 +149,7 @@ function updatePieTimer(progress) {
 }
 
 function drawSpectrum() {
+    if (!canvasCtx) return;
     canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
     const barWidth = 2;
     let x = 0;
@@ -166,11 +175,9 @@ function drawSpectrum() {
     }
 }
 
-// --- 変更: マイク呼び出しの成功・失敗を画面に表示する ---
 function initAudio() {
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-            // 成功した場合
             noteDisplay.textContent = 'MIC OK';
             audioContext = new AudioContext();
             const microphoneNode = audioContext.createMediaStreamSource(stream);
@@ -179,7 +186,6 @@ function initAudio() {
             pitchy = new Pitchy(analyserNode);
         })
         .catch(err => {
-            // 失敗した場合
             noteDisplay.textContent = `MIC Error: ${err.name}`;
             console.error("マイクエラー:", err);
         });
