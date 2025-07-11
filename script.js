@@ -11,7 +11,7 @@ const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 let currentNote = '';
 
 const DURATION = 10;
-let audioContext;
+let audioContext, pitchDetection; // pitchDetectionをグローバルに
 let gameLoopId, roundStartTime;
 let isPaused = true;
 
@@ -33,7 +33,11 @@ function togglePause() {
         resultMessage.className = 'display';
         sensorDot.className = '';
     } else {
-        if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                if (!gameLoopId) getPitch(); // ポーズ解除時に認識を再開
+            });
+        }
         startNextRound();
     }
 }
@@ -41,10 +45,12 @@ function togglePause() {
 function startNextRound() {
     if (isPaused) return;
     
-    resultMessage.textContent = ''; sensorDot.className = '';
+    resultMessage.textContent = '';
+    sensorDot.className = '';
     noteDisplay.textContent = '--';
     
-    chordDisplay.classList.remove('flipping'); chordDisplay.textContent = ''; 
+    chordDisplay.classList.remove('flipping');
+    chordDisplay.textContent = ''; 
 
     setTimeout(() => {
         let newNote;
@@ -54,7 +60,9 @@ function startNextRound() {
         chordDisplay.classList.add('flipping');
     }, 100);
 
-    if (!audioContext) initAudio();
+    if (!audioContext) {
+        initAudio();
+    }
     
     roundStartTime = performance.now();
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
@@ -66,8 +74,6 @@ function update(currentTime) {
     const elapsedTime = (currentTime - roundStartTime) / 1000;
     const progress = Math.min(elapsedTime / DURATION, 1);
     updatePieTimer(progress);
-    // アナライザの描画はml5.jsの処理と競合するため、一旦停止
-    // drawSpectrum(); 
     if (progress >= 1) {
         stopTraining('Oops!', 'incorrect');
         return;
@@ -90,35 +96,14 @@ function stopTraining(message, className) {
     }
 }
 
-// --- ここから下がml5.jsを使った新しい音声認識ロジック ---
-
 function initAudio() {
     audioContext = new AudioContext();
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-            noteDisplay.textContent = 'MIC OK';
-            // ml5.jsのピッチ検出モデルを準備
-            const pitchDetection = ml5.pitchDetection('./model/', audioContext, stream, modelLoaded);
-            
-            function modelLoaded() {
-                noteDisplay.textContent = 'Model Loaded!';
-                getPitch();
-            }
-
-            function getPitch() {
-                pitchDetection.getPitch((err, frequency) => {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
-                    if (frequency && !isPaused) {
-                        // 周波数が検出されたら判定
-                        checkPitch(frequency);
-                    }
-                    // 繰り返し呼び出す
-                    if (!isPaused) getPitch();
-                });
-            }
+            noteDisplay.textContent = 'Loading Model...';
+            // --- 変更: モデルのURLを直接指定 ---
+            const modelUrl = 'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/';
+            pitchDetection = ml5.pitchDetection(modelUrl, audioContext, stream, modelLoaded);
         })
         .catch(err => {
             noteDisplay.textContent = `MIC Error: ${err.name}`;
@@ -126,21 +111,40 @@ function initAudio() {
         });
 }
 
-// 周波数(Hz)を音名に変換するヘルパー関数
+function modelLoaded() {
+    noteDisplay.textContent = 'MIC OK';
+    getPitch(); // モデルが読み込めたらピッチ検出を開始
+}
+
+function getPitch() {
+    if (!pitchDetection || isPaused) return; // ポーズ中なら検出しない
+    pitchDetection.getPitch((err, frequency) => {
+        if (err) {
+            console.error(err);
+            noteDisplay.textContent = 'Error';
+            return;
+        }
+        checkPitch(frequency);
+        // 次のフレームでもう一度呼び出す
+        requestAnimationFrame(getPitch);
+    });
+}
+
 function frequencyToNoteName(frequency) {
     const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const midiNum = 69 + 12 * Math.log2(frequency / 440);
-    const noteIndex = Math.round(midiNum) % 12;
-    return noteStrings[noteIndex];
+    return noteStrings[Math.round(midiNum) % 12];
 }
 
 function checkPitch(frequency) {
-    if (!frequency || !gameLoopId) return;
+    if (!frequency || !gameLoopId) {
+        noteDisplay.textContent = '--';
+        return;
+    }
 
     const detectedNote = frequencyToNoteName(frequency);
     noteDisplay.textContent = `${detectedNote} (${Math.round(frequency)} Hz)`;
 
-    // #やbを無視した単純な比較
     if (detectedNote.charAt(0) === currentNote) {
         flashSensor('correct');
         stopTraining('nice!', 'correct');
@@ -156,6 +160,20 @@ function flashSensor(className) {
     }, 200);
 }
 
-// 以下の関数は変更なし
-function updatePieTimer(progress) { /* ... */ }
-function drawSpectrum() { /* ... */ } // 現在は未使用
+function updatePieTimer(progress) {
+    const angle = progress * 360;
+    const x = 10 + Math.cos((angle - 90) * Math.PI / 180) * 8;
+    const y = 10 + Math.sin((angle - 90) * Math.PI / 180) * 8;
+    if (isNaN(x) || isNaN(y)) return;
+    const largeArcFlag = angle > 180 ? 1 : 0;
+    const d = `M 10,10 L 10,2 A 8,8 0 ${largeArcFlag},1 ${x},${y} Z`;
+    
+    if (progress < 1) {
+      pieTimerFill.setAttribute('d', d);
+    } else {
+      pieTimerFill.setAttribute('d', 'M 10,10 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0');
+    }
+}
+
+// アナライザはml5.jsと競合するため、現在無効化しています
+function drawSpectrum() {}
