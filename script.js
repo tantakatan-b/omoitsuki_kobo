@@ -1,179 +1,91 @@
-// HTMLの要素を取得
-const resultMessage = document.getElementById('result-message');
-const chordDisplay = document.getElementById('chord-display');
-const pieTimerFill = document.getElementById('pie-timer-fill');
-const spectrumCanvas = document.getElementById('spectrum-canvas');
-const sensorDot = document.getElementById('sensor-dot');
 const noteDisplay = document.getElementById('note-display');
+const startButton = document.getElementById('start-button');
+const spectrumCanvas = document.getElementById('spectrum-canvas');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
-const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-let currentNote = '';
+let audioContext;
+let pitch; // ml5.jsのピッチ検出オブジェクト
+let analyserNode;
 
-const DURATION = 10;
-let audioContext, pitchDetection; // pitchDetectionをグローバルに
-let gameLoopId, roundStartTime;
-let isPaused = true;
-
-resultMessage.textContent = "Click or Press Space to Start";
-drawSpectrum();
-
-document.body.addEventListener('click', togglePause);
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+startButton.addEventListener('click', () => {
+    // AudioContextの初期化
+    audioContext = new AudioContext();
+    // ユーザーの操作後にAudioContextを再開
+    audioContext.resume().then(() => {
+        noteDisplay.textContent = 'AudioContext Resumed';
+        
+        // マイクへのアクセス
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then(handleSuccess)
+            .catch(handleError);
+    });
 });
 
-function togglePause() {
-    isPaused = !isPaused;
-    if (isPaused) {
-        cancelAnimationFrame(gameLoopId);
-        gameLoopId = null;
-        if (audioContext && audioContext.state === 'running') audioContext.suspend();
-        resultMessage.textContent = 'Paused';
-        resultMessage.className = 'display';
-        sensorDot.className = '';
-    } else {
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                if (!gameLoopId) getPitch(); // ポーズ解除時に認識を再開
-            });
-        }
-        startNextRound();
-    }
-}
-
-function startNextRound() {
-    if (isPaused) return;
+function handleSuccess(stream) {
+    noteDisplay.textContent = 'MIC OK. Loading Model...';
     
-    resultMessage.textContent = '';
-    sensorDot.className = '';
-    noteDisplay.textContent = '--';
-    
-    chordDisplay.classList.remove('flipping');
-    chordDisplay.textContent = ''; 
+    // アナライザノードのセットアップ
+    analyserNode = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyserNode);
 
-    setTimeout(() => {
-        let newNote;
-        do { newNote = noteList[Math.floor(Math.random() * noteList.length)]; } while (newNote === currentNote);
-        currentNote = newNote;
-        chordDisplay.textContent = currentNote;
-        chordDisplay.classList.add('flipping');
-    }, 100);
-
-    if (!audioContext) {
-        initAudio();
-    }
-    
-    roundStartTime = performance.now();
-    if(gameLoopId) cancelAnimationFrame(gameLoopId);
-    gameLoopId = requestAnimationFrame(update);
-}
-
-function update(currentTime) {
-    if (isPaused) return;
-    const elapsedTime = (currentTime - roundStartTime) / 1000;
-    const progress = Math.min(elapsedTime / DURATION, 1);
-    updatePieTimer(progress);
-    if (progress >= 1) {
-        stopTraining('Oops!', 'incorrect');
-        return;
-    }
-    gameLoopId = requestAnimationFrame(update);
-}
-
-function stopTraining(message, className) {
-    if (!gameLoopId) return;
-    
-    cancelAnimationFrame(gameLoopId);
-    gameLoopId = null;
-
-    resultMessage.textContent = message;
-    resultMessage.className = `display ${className}`;
-    sensorDot.className = className;
-    
-    if (!isPaused) {
-        setTimeout(startNextRound, 1500);
-    }
-}
-
-function initAudio() {
-    audioContext = new AudioContext();
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            noteDisplay.textContent = 'Loading Model...';
-            // --- 変更: モデルのURLを直接指定 ---
-            const modelUrl = 'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/';
-            pitchDetection = ml5.pitchDetection(modelUrl, audioContext, stream, modelLoaded);
-        })
-        .catch(err => {
-            noteDisplay.textContent = `MIC Error: ${err.name}`;
-            console.error("マイクエラー:", err);
-        });
+    // ml5.jsのピッチ検出モデルを準備
+    const modelUrl = 'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/';
+    pitch = ml5.pitchDetection(modelUrl, audioContext, stream, modelLoaded);
 }
 
 function modelLoaded() {
-    noteDisplay.textContent = 'MIC OK';
-    getPitch(); // モデルが読み込めたらピッチ検出を開始
+    noteDisplay.textContent = 'Model Loaded. Listening...';
+    getPitch();
+    drawSpectrum(); // アナライザの描画を開始
 }
 
 function getPitch() {
-    if (!pitchDetection || isPaused) return; // ポーズ中なら検出しない
-    pitchDetection.getPitch((err, frequency) => {
+    pitch.getPitch((err, frequency) => {
         if (err) {
             console.error(err);
-            noteDisplay.textContent = 'Error';
+            noteDisplay.textContent = 'Error getting pitch.';
             return;
         }
-        checkPitch(frequency);
-        // 次のフレームでもう一度呼び出す
+        if (frequency) {
+            const noteName = frequencyToNoteName(frequency);
+            noteDisplay.textContent = `${noteName} (${Math.round(frequency)} Hz)`;
+        }
+        // 繰り返し呼び出す
         requestAnimationFrame(getPitch);
     });
 }
 
+function drawSpectrum() {
+    if (!analyserNode) return;
+    
+    const bufferLength = analyserNode.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    analyserNode.getByteFrequencyData(dataArray);
+
+    canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+    const barWidth = (spectrumCanvas.width / bufferLength) * 2;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+        const barHeight = dataArray[i] / 4;
+        canvasCtx.fillStyle = 'rgb(150, 150, 150)';
+        canvasCtx.fillRect(x, spectrumCanvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+    }
+    
+    requestAnimationFrame(drawSpectrum);
+}
+
+
+function handleError(err) {
+    console.error('Error:', err);
+    noteDisplay.textContent = `Error: ${err.name}`;
+}
+
+// 周波数(Hz)を音名に変換するヘルパー関数
 function frequencyToNoteName(frequency) {
     const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const midiNum = 69 + 12 * Math.log2(frequency / 440);
     return noteStrings[Math.round(midiNum) % 12];
 }
-
-function checkPitch(frequency) {
-    if (!frequency || !gameLoopId) {
-        noteDisplay.textContent = '--';
-        return;
-    }
-
-    const detectedNote = frequencyToNoteName(frequency);
-    noteDisplay.textContent = `${detectedNote} (${Math.round(frequency)} Hz)`;
-
-    if (detectedNote.charAt(0) === currentNote) {
-        flashSensor('correct');
-        stopTraining('nice!', 'correct');
-    } else {
-        flashSensor('incorrect');
-    }
-}
-
-function flashSensor(className) {
-    sensorDot.classList.add(className);
-    setTimeout(() => {
-        sensorDot.classList.remove(className);
-    }, 200);
-}
-
-function updatePieTimer(progress) {
-    const angle = progress * 360;
-    const x = 10 + Math.cos((angle - 90) * Math.PI / 180) * 8;
-    const y = 10 + Math.sin((angle - 90) * Math.PI / 180) * 8;
-    if (isNaN(x) || isNaN(y)) return;
-    const largeArcFlag = angle > 180 ? 1 : 0;
-    const d = `M 10,10 L 10,2 A 8,8 0 ${largeArcFlag},1 ${x},${y} Z`;
-    
-    if (progress < 1) {
-      pieTimerFill.setAttribute('d', d);
-    } else {
-      pieTimerFill.setAttribute('d', 'M 10,10 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0');
-    }
-}
-
-// アナライザはml5.jsと競合するため、現在無効化しています
-function drawSpectrum() {}
