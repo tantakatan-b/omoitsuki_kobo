@@ -7,19 +7,24 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <svg id="pie-timer" width="50" height="50" viewBox="0 0 20 20">
-        <circle class="pie-timer-bg" cx="10" cy="10" r="8" />
-        <path id="pie-timer-fill" class="pie-timer-fill" />
-    </svg>
+    <div id="bpm-control">
+        <label for="bpm-input">BPM</label>
+        <input type="number" id="bpm-input" value="120" min="40" max="240">
+    </div>
 
-    <div id="note-display">--</div>
+    <div id="metronome-dots">
+        <div class="beat-dot"></div>
+        <div class="beat-dot"></div>
+        <div class="beat-dot"></div>
+        <div class="beat-dot"></div>
+    </div>
 
     <div class="container">
-        <div id="chord-display" class="display"></div>
+        <div id="chord-display" class="display">Note</div>
     </div>
     
     <div class="bottom-ui">
-        <canvas id="spectrum-canvas" width="100" height="80"></canvas>
+        <canvas id="spectrum-canvas" width="150" height="50"></canvas>
         <div id="result-message" class="display"></div>
         <div id="sensor-dot"></div>
     </div>
