@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Training</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
 </head>
 <body>
     <svg id="pie-timer" width="50" height="50" viewBox="0 0 20 20">
@@ -18,15 +19,12 @@
         <div id="chord-display" class="display"></div>
     </div>
     
-    <div class="bottom-left">
+    <div class="bottom-ui">
         <canvas id="spectrum-canvas" width="100" height="80"></canvas>
-    </div>
-    <div id="result-message" class="display"></div>
-    <div class="bottom-right">
+        <div id="result-message" class="display"></div>
         <div id="sensor-dot"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/gh/iancep/pitchy@0.0.3/pitchy.min.js"></script>
     <script src="script.js" defer></script>
 </body>
 </html>
