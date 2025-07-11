@@ -1,40 +1,19 @@
 body {
     background-color: #f0f0f0;
     color: #333;
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-family: sans-serif;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
-    overflow: hidden;
 }
-
-#chord-display {
-    font-size: 25vw;
-    font-weight: bold;
+#analyzer {
+    border: 1px solid #ccc;
 }
-
-#note-display {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    font-size: 24px;
-    color: #888;
-    font-family: monospace;
-}
-
-#spectrum-canvas {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-}
-
 #start-button {
-    position: absolute;
-    bottom: 20px;
-    font-size: 16px;
+    margin-top: 20px;
     padding: 10px 20px;
-    cursor: pointer;
+    font-size: 18px;
 }
