@@ -8,20 +8,21 @@ let analyserNode;
 let dataArray;
 
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const detectedNoteHistory = []; // 追加: 音の履歴を保存する配列
 
 startButton.addEventListener('click', () => {
-    if (audioContext) return; // 既に開始している場合は何もしない
+    if (audioContext) return;
 
     audioContext = new AudioContext();
     
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
         .then(stream => {
-            startButton.style.display = 'none'; // ボタンを隠す
+            startButton.style.display = 'none';
             noteDisplay.textContent = 'Listening...';
 
             const source = audioContext.createMediaStreamSource(stream);
             analyserNode = audioContext.createAnalyser();
-            analyserNode.fftSize = 2048; // 解像度を上げる
+            analyserNode.fftSize = 2048;
             source.connect(analyserNode);
             
             dataArray = new Uint8Array(analyserNode.frequencyBinCount);
@@ -50,6 +51,7 @@ function drawSpectrum() {
     }
 }
 
+// --- 変更: 多数決で判定するロジック ---
 function detectPitch() {
     if (!analyserNode) return;
     
@@ -57,12 +59,11 @@ function detectPitch() {
     const buffer = new Float32Array(bufferLength);
     analyserNode.getFloatTimeDomainData(buffer);
 
-    // オートコレレーション（自己相関）でピッチを検出するシンプルなアルゴリズム
-    let bestCorrelation = 0;
-    let bestLag = -1;
     const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / bufferLength);
 
-    if (rms > 0.01) { // ある程度の音量がある場合のみ
+    if (rms > 0.01) {
+        let bestCorrelation = 0;
+        let bestLag = -1;
         for (let lag = 40; lag < 1000; lag++) {
             let correlation = 0;
             for (let i = 0; i < bufferLength - lag; i++) {
@@ -76,7 +77,18 @@ function detectPitch() {
         if (bestLag !== -1) {
             const frequency = audioContext.sampleRate / bestLag;
             const noteName = frequencyToNoteName(frequency);
-            noteDisplay.textContent = `${noteName} (${Math.round(frequency)} Hz)`;
+            
+            // 履歴に追加
+            detectedNoteHistory.push(noteName);
+            if (detectedNoteHistory.length > 15) {
+                detectedNoteHistory.shift(); // 古いものから削除
+            }
+
+            // 多数決で最も多い音を決定
+            const mostFrequentNote = getMostFrequentNote(detectedNoteHistory);
+            
+            // デバッグ表示を更新
+            noteDisplay.textContent = `${mostFrequentNote} (Detected: ${noteName})`;
         }
     } else {
         noteDisplay.textContent = 'Listening...';
@@ -84,6 +96,17 @@ function detectPitch() {
 
     requestAnimationFrame(detectPitch);
 }
+
+// 配列の中で最も頻繁に出現する要素を返す関数
+function getMostFrequentNote(arr) {
+    if (arr.length === 0) return null;
+    const counts = arr.reduce((acc, value) => {
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+    }, {});
+    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+}
+
 
 function frequencyToNoteName(frequency) {
     const midiNum = 69 + 12 * Math.log2(frequency / 440);
