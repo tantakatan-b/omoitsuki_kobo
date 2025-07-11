@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Training</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <svg id="pie-timer" width="50" height="50" viewBox="0 0 20 20">
+        <circle class="pie-timer-bg" cx="10" cy="10" r="8" />
+        <path id="pie-timer-fill" class="pie-timer-fill" />
+    </svg>
+
+    <div id="note-display">--</div>
+
+    <div class="container">
+        <div id="chord-display" class="display"></div>
+    </div>
+    
+    <div class="bottom-left">
+        <canvas id="spectrum-canvas" width="100" height="80"></canvas>
+    </div>
+    <div id="result-message" class="display"></div>
+    <div class="bottom-right">
+        <div id="sensor-dot"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/gh/iancep/pitchy@0.0.3/pitchy.min.js"></script>
+    <script src="script.js" defer></script>
+</body>
+</html>
