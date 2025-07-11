@@ -33,11 +33,13 @@ function togglePause() {
     if (isPaused) {
         cancelAnimationFrame(gameLoopId);
         gameLoopId = null;
+        if (audioContext && audioContext.state === 'running') {
+            audioContext.suspend(); // マイクへのアクセスを一時停止
+        }
         resultMessage.textContent = 'Paused';
         resultMessage.className = 'display';
         sensorDot.className = '';
     } else {
-        // --- 変更: audioContextが一時停止状態なら再開させる ---
         if (audioContext && audioContext.state === 'suspended') {
             audioContext.resume();
         }
@@ -64,7 +66,9 @@ function startNextRound() {
         chordDisplay.classList.add('flipping');
     }, 100);
 
-    if (!audioContext) initAudio();
+    if (!audioContext) {
+        initAudio();
+    }
     
     roundStartTime = performance.now();
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
@@ -78,7 +82,10 @@ function update(currentTime) {
     updatePieTimer(progress);
     drawSpectrum();
     if (analyserNode) checkPitch();
-    if (progress >= 1) { stopTraining('Oops!', 'incorrect'); return; }
+    if (progress >= 1) {
+        stopTraining('Oops!', 'incorrect');
+        return;
+    }
     gameLoopId = requestAnimationFrame(update);
 }
 
@@ -97,15 +104,22 @@ function stopTraining(message, className) {
     }
 }
 
+// --- 変更: デバッグ表示を常に更新する ---
 function checkPitch() {
     if (!analyserNode) return;
     try {
         const [pitch, clarity] = pitchy.getPitch();
-        if (!pitch) return;
 
-        noteDisplay.textContent = `${pitchy.getNoteFromPitch(pitch)} (${clarity.toFixed(2)})`;
+        // 常に現在の分析状況を表示する
+        if (pitch) {
+            noteDisplay.textContent = `${pitchy.getNoteFromPitch(pitch)} (${clarity.toFixed(2)})`;
+        } else {
+            // 音名が特定できない場合でも、明瞭度だけは表示する
+            noteDisplay.textContent = `Clarity: ${clarity.toFixed(2)}`;
+        }
 
-        if (clarity > 0.85) {
+        // 正解判定ロジック
+        if (pitch && clarity > 0.85) {
             const note = pitchy.getNoteFromPitch(pitch).slice(0, -1);
             const correctNotes = chordFormulas[currentChord];
             
@@ -123,6 +137,7 @@ function checkPitch() {
         }
     } catch (error) {
         console.error("Error in checkPitch:", error);
+        noteDisplay.textContent = 'Error';
     }
 }
 
