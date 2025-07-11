@@ -11,29 +11,30 @@ body {
     overflow: hidden;
 }
 
-/* --- 追加: BPMとメトロノームのスタイル --- */
+/* --- 変更: BPM表記のデザインと配置 --- */
 #bpm-control {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 40px;
+    left: 40px;
     display: flex;
-    align-items: center;
+    align-items: baseline;
     font-size: 16px;
     color: #888;
 }
-#bpm-input {
-    width: 60px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 5px;
-    margin-left: 10px;
-    text-align: center;
+.bpm-label {
+    font-size: 14px;
+    margin-right: 8px;
 }
+#bpm-display {
+    font-size: 24px;
+    font-weight: bold;
+    color: #555;
+}
+
 #metronome-dots {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 40px;
+    right: 40px;
     display: flex;
     gap: 10px;
 }
@@ -47,7 +48,6 @@ body {
 .beat-dot.active {
     background-color: #333;
 }
-/* --- 追加ここまで --- */
 
 .bottom-ui {
     position: absolute;
@@ -59,12 +59,17 @@ body {
     align-items: center;
     height: 50px;
 }
-#result-message { /* Press Space to Start などに使う */
+
+/* --- 変更: メッセージを中央に絶対配置 --- */
+#result-message {
     font-size: 18px; 
-    font-weight: 300;
-    flex-grow: 1;
-    text-align: center;
+    font-weight: 300; /* 細い書体 */
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
 }
+
 #sensor-dot {
     width: 14px;
     height: 14px;
