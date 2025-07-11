@@ -3,28 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Training</title>
+    <title>Code Recognition Test</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
 </head>
 <body>
-    <svg id="pie-timer" width="50" height="50" viewBox="0 0 20 20">
-        <circle class="pie-timer-bg" cx="10" cy="10" r="8" />
-        <path id="pie-timer-fill" class="pie-timer-fill" />
-    </svg>
-
     <div id="note-display">--</div>
-
-    <div class="container">
-        <div id="chord-display" class="display"></div>
-    </div>
-    
-    <div class="bottom-ui">
-        <canvas id="spectrum-canvas" width="100" height="80"></canvas>
-        <div id="result-message" class="display"></div>
-        <div id="sensor-dot"></div>
-    </div>
-
-    <script src="script.js" defer></script>
+    <div id="chord-display">Note</div>
+    <canvas id="spectrum-canvas" width="150" height="50"></canvas>
+    <button id="start-button">Start Audio</button>
+    <script src="script.js"></script>
 </body>
 </html>
