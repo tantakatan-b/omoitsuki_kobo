@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="bpm-control">
-        <label for="bpm-input">BPM</label>
-        <input type="number" id="bpm-input" value="120" min="40" max="240">
+    <div class="top-left-controls">
+        <div id="bpm-control">
+            <label for="bpm-input">BPM</label>
+            <input type="number" id="bpm-input" value="120" min="40" max="240">
+        </div>
+        <button id="beep-toggle">Beep: ON</button>
     </div>
 
     <div id="metronome-dots">
@@ -29,7 +32,9 @@
     </div>
     
     <div id="control-area">
+        <div id="message-area"></div>
         <button id="start-button">START</button>
+        <button id="play-pause-button" style="display: none;">PAUSE</button>
     </div>
 
     <script src="script.js"></script>
