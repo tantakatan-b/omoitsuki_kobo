@@ -2,9 +2,10 @@
 const chordDisplay = document.getElementById('chord-display');
 const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
+const startButton = document.getElementById('start-button');
+const controlArea = document.getElementById('control-area');
 const bpmInput = document.getElementById('bpm-input');
 const metronomeDots = document.querySelectorAll('.beat-dot');
-const messageArea = document.getElementById('message-area');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
 // 定数と変数
@@ -12,79 +13,64 @@ const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#",
 const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 let currentNote = 'Note';
 let audioContext, analyserNode;
-let isPlaying = false;
-const detectedNoteHistory = [];
 
 let bpm = 120;
-let beatDuration = 60000 / bpm;
 let lastBeatTime = 0;
 let currentBeat = 0;
 
 // --- 初期化 ---
 chordDisplay.textContent = 'Note';
-messageArea.textContent = 'Click or Press Space to Start';
 drawSpectrum();
 
 // --- イベントリスナー ---
-document.body.addEventListener('click', togglePlayPause);
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
-        e.preventDefault();
-        togglePlayPause();
-    }
-});
+startButton.addEventListener('click', initAudio);
+
+// BPM入力の修正
 bpmInput.addEventListener('input', (e) => {
-    bpm = parseInt(e.target.value, 10);
+    let newBpm = parseInt(e.target.value, 10);
+    // 入力が空、または数値でない場合は何もしない
+    if (isNaN(newBpm)) return;
+    bpm = newBpm;
+});
+bpmInput.addEventListener('change', (e) => {
+    // 入力が確定したら範囲内に補正
     if (bpm < 40) bpm = 40;
     if (bpm > 240) bpm = 240;
-    e.target.value = bpm; // 入力値を補正
-    beatDuration = 60000 / bpm;
+    e.target.value = bpm;
 });
-// BPM入力中は再生/停止が発動しないようにする
-bpmInput.addEventListener('click', (e) => e.stopPropagation());
-bpmInput.addEventListener('keydown', (e) => e.stopPropagation());
 
 // --- メインロジック ---
-function togglePlayPause() {
-    if (!audioContext) {
-        initAudio();
-        return;
-    }
-
-    isPlaying = !isPlaying;
-    if (isPlaying) {
-        audioContext.resume();
-        messageArea.textContent = '';
-        lastBeatTime = performance.now();
-        requestAnimationFrame(update);
-    } else {
-        audioContext.suspend();
-        messageArea.textContent = 'Paused';
-    }
-}
-
 function initAudio() {
-    messageArea.textContent = 'Starting...';
+    if (audioContext) return;
+    startButton.textContent = 'Starting...';
+    startButton.disabled = true;
+
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
         .then(handleStream)
         .catch(handleError);
 }
 
 function handleStream(stream) {
+    controlArea.style.display = 'none'; // スタートボタンを隠す
+    
     audioContext = new AudioContext();
     const source = audioContext.createMediaStreamSource(stream);
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 2048;
     source.connect(analyserNode);
-    togglePlayPause(); // 初期化後に再生を開始
+
+    lastBeatTime = performance.now();
+    requestAnimationFrame(update);
 }
 
 function handleError(err) {
-    messageArea.textContent = `Error: ${err.name}`;
+    startButton.textContent = `Error: ${err.name}`;
+    startButton.disabled = false;
+    console.error('Error:', err);
 }
 
 function update(currentTime) {
-    if (!isPlaying) return;
+    const beatDuration = 60000 / bpm; // BPMの変更を毎フレーム反映
 
     if (currentTime - lastBeatTime > beatDuration) {
         lastBeatTime = currentTime;
@@ -92,7 +78,7 @@ function update(currentTime) {
         updateMetronomeDots(currentBeat);
         playBeep(currentBeat);
 
-        if (currentBeat === 0) { // 4拍終わって次の1拍目
+        if (currentBeat === 0) {
             changeNote();
         }
     }
@@ -123,18 +109,15 @@ function playBeep(beat) {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
     
-    oscillator.frequency.value = (beat === 0) ? 880.0 : 440.0; // 1拍目は高く
+    oscillator.frequency.value = (beat === 0) ? 880.0 : 440.0;
     oscillator.type = 'sine';
     
     oscillator.start(audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.05);
     oscillator.stop(audioContext.currentTime + 0.05);
 }
 
-// --- 音声認識と判定 ---
 function detectPitch() {
     if (!analyserNode) return;
     
@@ -142,20 +125,13 @@ function detectPitch() {
     analyserNode.getFloatTimeDomainData(buffer);
     const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / buffer.length);
 
-    if (rms > 0.015) { // 感度を少し調整
+    if (rms > 0.02) {
         const noteName = findFundamentalFreq(buffer, audioContext.sampleRate);
         if (noteName) {
-            detectedNoteHistory.push(noteName);
-            if (detectedNoteHistory.length > 5) detectedNoteHistory.shift();
-            
-            const mostFrequentNote = getMostFrequentNote(detectedNoteHistory);
-            
-            if (mostFrequentNote.charAt(0) === currentNote) {
+            if (noteName.charAt(0) === currentNote) {
                 flashSensor('correct');
-                showResultMessage('nice!', 'correct');
             } else {
                 flashSensor('incorrect');
-                showResultMessage('Oops!', 'incorrect');
             }
         }
     }
@@ -181,21 +157,7 @@ function frequencyToNoteName(frequency) {
 
 function flashSensor(className) {
     sensorDot.className = className;
-}
-
-function showResultMessage(message, className) {
-    messageArea.textContent = message;
-    messageArea.className = className;
-    setTimeout(() => {
-        messageArea.textContent = '';
-        messageArea.className = '';
-    }, 500); // 0.5秒でメッセージを消す
-}
-
-function getMostFrequentNote(arr) {
-    if (arr.length === 0) return null;
-    const counts = arr.reduce((acc, value) => ({...acc, [value]: (acc[value] || 0) + 1 }), {});
-    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+    setTimeout(() => { sensorDot.className = ''; }, 200);
 }
 
 function drawSpectrum() {
@@ -208,7 +170,7 @@ function drawSpectrum() {
     for (let i = 0; i < dataArray.length; i++) {
         const barHeight = dataArray[i];
         canvasCtx.fillStyle = 'rgb(150, 150, 150)';
-        canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+        canvasCtx.fillRect(x, spectrumCanvas.height - barHeight / 2, barWidth, barHeight / 2);
         x += barWidth + 1;
     }
 }
