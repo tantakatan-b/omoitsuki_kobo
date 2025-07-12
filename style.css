@@ -8,8 +8,10 @@ body {
     height: 100vh;
     margin: 0;
     overflow: hidden;
+    cursor: pointer; /* クリックできることを示す */
 }
 
+/* --- BPM入力欄のスタイル --- */
 #bpm-control {
     position: absolute;
     top: 40px;
@@ -19,8 +21,25 @@ body {
     font-size: 16px;
     color: #888;
 }
-.bpm-label { font-size: 14px; margin-right: 8px; }
-#bpm-display { font-size: 24px; font-weight: bold; color: #555; }
+#bpm-control label {
+    font-size: 14px;
+    margin-right: 8px;
+}
+#bpm-input {
+    font-size: 24px;
+    font-weight: bold;
+    color: #555;
+    width: 70px;
+    border: none;
+    background-color: transparent;
+    text-align: left;
+    -moz-appearance: textfield; /* Firefoxでのスピナー非表示 */
+}
+#bpm-input::-webkit-outer-spin-button,
+#bpm-input::-webkit-inner-spin-button {
+  -webkit-appearance: none; /* Chrome/Safariでのスピナー非表示 */
+  margin: 0;
+}
 
 #metronome-dots {
     position: absolute;
@@ -34,9 +53,11 @@ body {
     height: 15px;
     background-color: #ccc;
     border-radius: 50%;
-    transition: background-color 0.1s;
+    transition: background-color 0.05s;
 }
-.beat-dot.active { background-color: #333; }
+.beat-dot.active {
+    background-color: #333;
+}
 
 .bottom-ui {
     position: absolute;
@@ -70,25 +91,16 @@ body {
     font-weight: bold;
 }
 
-/* 変更: メッセージとボタンのコンテナ */
-#control-area {
+/* --- メッセージ表示エリアのスタイル --- */
+#message-area {
     position: absolute;
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
-    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    min-height: 30px;
+    color: #555;
 }
-#message-area {
-    font-size: 18px; 
-    font-weight: 300;
-    min-height: 25px; /* 高さを確保 */
-}
-#start-button {
-    font-size: 18px; 
-    font-weight: 300;
-    padding: 10px 40px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    background-color: white;
-    cursor: pointer;
-}
+#message-area.correct { color: #4caf50; }
+#message-area.incorrect { color: #f44336; }
