@@ -10,9 +10,10 @@ body {
     overflow: hidden;
 }
 
-.top-left-controls {
+/* --- 上部UIの配置 --- */
+.top-controls {
     position: absolute;
-    top: 40px;
+    top: 35px;
     left: 40px;
     display: flex;
     align-items: center;
@@ -37,11 +38,8 @@ body {
 }
 #bpm-input::-webkit-outer-spin-button,
 #bpm-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  -webkit-appearance: none; margin: 0;
 }
-
-/* --- 変更: Beepボタンのスタイル --- */
 #beep-toggle {
     font-size: 16px;
     font-weight: 300;
@@ -50,11 +48,13 @@ body {
     border: none;
     cursor: pointer;
     padding: 5px;
+    opacity: 0.5;
 }
-#beep-toggle:hover {
+#beep-toggle.active {
+    opacity: 1.0;
     color: #333;
 }
-
+#beep-toggle:hover { color: #333; }
 
 #metronome-dots {
     position: absolute;
@@ -70,13 +70,12 @@ body {
     border-radius: 50%;
     transition: background-color 0.05s;
 }
-.beat-dot.active {
-    background-color: #333;
-}
+.beat-dot.active { background-color: #333; }
 
+/* --- 下部UIの配置 --- */
 .bottom-ui {
     position: absolute;
-    bottom: 20px;
+    bottom: 35px;
     left: 40px;
     right: 40px;
     display: flex;
@@ -84,7 +83,9 @@ body {
     align-items: center;
     height: 50px;
 }
-
+#spectrum-canvas {
+    display: block;
+}
 #sensor-dot {
     width: 14px;
     height: 14px;
@@ -108,7 +109,7 @@ body {
 
 #control-area {
     position: absolute;
-    bottom: 40px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
@@ -122,7 +123,6 @@ body {
 #message-area.correct { color: #4caf50; }
 #message-area.incorrect { color: #f44336; }
 
-/* --- 変更: スタート/ポーズボタンのスタイル --- */
 #start-button, #play-pause-button {
     font-size: 18px; 
     font-weight: 300;
