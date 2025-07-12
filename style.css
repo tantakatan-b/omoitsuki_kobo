@@ -10,7 +10,6 @@ body {
     overflow: hidden;
 }
 
-/* --- 左上コントロールのスタイル --- */
 .top-left-controls {
     position: absolute;
     top: 40px;
@@ -41,14 +40,21 @@ body {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* --- 変更: Beepボタンのスタイル --- */
 #beep-toggle {
-    font-size: 14px;
-    padding: 5px 10px;
-    border: 1px solid #ccc;
-    background-color: white;
-    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 300;
+    color: #888;
+    background-color: transparent;
+    border: none;
     cursor: pointer;
+    padding: 5px;
 }
+#beep-toggle:hover {
+    color: #333;
+}
+
 
 #metronome-dots {
     position: absolute;
@@ -64,7 +70,9 @@ body {
     border-radius: 50%;
     transition: background-color 0.05s;
 }
-.beat-dot.active { background-color: #333; }
+.beat-dot.active {
+    background-color: #333;
+}
 
 .bottom-ui {
     position: absolute;
@@ -114,13 +122,17 @@ body {
 #message-area.correct { color: #4caf50; }
 #message-area.incorrect { color: #f44336; }
 
+/* --- 変更: スタート/ポーズボタンのスタイル --- */
 #start-button, #play-pause-button {
     font-size: 18px; 
     font-weight: 300;
-    padding: 10px 40px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    background-color: white;
+    color: #555;
+    background-color: transparent;
+    border: none;
     cursor: pointer;
-    min-width: 130px; /* ボタン幅を揃える */
+    padding: 10px 20px;
+    min-width: 130px;
+}
+#start-button:hover, #play-pause-button:hover {
+    color: #000;
 }
