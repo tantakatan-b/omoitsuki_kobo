@@ -1,11 +1,11 @@
-// HTML要素の取得
+// HTML要素
 const chordDisplay = document.getElementById('chord-display');
-const spectrumCanvas = document.getElementById('spectrum-canvas'); // 正しい変数名で取得
+const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
-const startButtonContainer = document.getElementById('start-button-container');
 const startButton = document.getElementById('start-button');
 const metronomeDots = document.querySelectorAll('.beat-dot');
-const canvasCtx = spectrumCanvas.getContext('2d'); // 正しい変数名からgetContextする
+const messageArea = document.getElementById('message-area'); // 変更
+const canvasCtx = spectrumCanvas.getContext('2d');
 
 // 定数と変数
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -17,10 +17,10 @@ let bpm = 120;
 let beatDuration = 60000 / bpm;
 let lastBeatTime = 0;
 let currentBeat = 0;
-let gameLoopId = null;
 
 // --- 初期化 ---
 chordDisplay.textContent = 'Note';
+messageArea.textContent = 'Click START to begin';
 drawSpectrum();
 
 // --- イベントリスナー ---
@@ -29,17 +29,16 @@ startButton.addEventListener('click', initAudio);
 // --- メインロジック ---
 function initAudio() {
     if (audioContext) return;
-    startButton.textContent = 'Starting...';
-    startButton.disabled = true;
+    messageArea.textContent = 'Requesting MIC...';
+    startButton.style.display = 'none';
 
-    // 起動ロジック
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
         .then(handleStream)
         .catch(handleError);
 }
 
 function handleStream(stream) {
-    startButtonContainer.style.display = 'none';
+    messageArea.textContent = ''; // メッセージをクリア
     
     audioContext = new AudioContext();
     const source = audioContext.createMediaStreamSource(stream);
@@ -48,16 +47,16 @@ function handleStream(stream) {
     source.connect(analyserNode);
 
     lastBeatTime = performance.now();
-    update(); // メインループを開始
+    update();
 }
 
 function handleError(err) {
-    startButton.textContent = `Error: ${err.name}`;
+    messageArea.textContent = `Error: ${err.name}`;
+    startButton.style.display = 'block';
     console.error('Error:', err);
 }
 
 function update() {
-    // BPMメトロノーム処理
     if (performance.now() - lastBeatTime > beatDuration) {
         lastBeatTime = performance.now();
         currentBeat = (currentBeat % 4) + 1;
@@ -66,10 +65,8 @@ function update() {
             changeNote();
         }
     }
-
     drawSpectrum();
     detectPitch();
-
     requestAnimationFrame(update);
 }
 
@@ -129,11 +126,7 @@ function flashSensor(className) {
 }
 
 function drawSpectrum() {
-    // この関数内では、すべて'spectrumCanvas'と'canvasCtx'を使用
-    if (!analyserNode) {
-        canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
-        return;
-    };
+    if (!analyserNode) return;
     const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
     analyserNode.getByteFrequencyData(dataArray);
     canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
