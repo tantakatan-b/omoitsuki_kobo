@@ -3,7 +3,6 @@ body {
     color: #333;
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
@@ -11,7 +10,6 @@ body {
     overflow: hidden;
 }
 
-/* --- 変更: BPM表記のデザインと配置 --- */
 #bpm-control {
     position: absolute;
     top: 40px;
@@ -21,15 +19,8 @@ body {
     font-size: 16px;
     color: #888;
 }
-.bpm-label {
-    font-size: 14px;
-    margin-right: 8px;
-}
-#bpm-display {
-    font-size: 24px;
-    font-weight: bold;
-    color: #555;
-}
+.bpm-label { font-size: 14px; margin-right: 8px; }
+#bpm-display { font-size: 24px; font-weight: bold; color: #555; }
 
 #metronome-dots {
     position: absolute;
@@ -45,9 +36,7 @@ body {
     border-radius: 50%;
     transition: background-color 0.1s;
 }
-.beat-dot.active {
-    background-color: #333;
-}
+.beat-dot.active { background-color: #333; }
 
 .bottom-ui {
     position: absolute;
@@ -58,16 +47,6 @@ body {
     justify-content: space-between;
     align-items: center;
     height: 50px;
-}
-
-/* --- 変更: メッセージを中央に絶対配置 --- */
-#result-message {
-    font-size: 18px; 
-    font-weight: 300; /* 細い書体 */
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
 }
 
 #sensor-dot {
@@ -89,4 +68,20 @@ body {
 #chord-display {
     font-size: 32.5vw;
     font-weight: bold;
+}
+
+#start-button-container {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+#start-button {
+    font-size: 18px; 
+    font-weight: 300;
+    padding: 10px 40px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
 }
