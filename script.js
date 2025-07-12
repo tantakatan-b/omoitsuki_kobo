@@ -3,6 +3,7 @@ const resultMessage = document.getElementById('result-message');
 const chordDisplay = document.getElementById('chord-display');
 const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
+const bpmDisplay = document.getElementById('bpm-display');
 const metronomeDots = document.querySelectorAll('.beat-dot');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
@@ -11,7 +12,7 @@ const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#",
 const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 let currentNote = 'Note';
 let audioContext, analyserNode;
-let isPaused = true;
+let isPlaying = false; // isPausedからisPlayingに変更
 const detectedNoteHistory = [];
 
 let bpm = 120;
@@ -22,37 +23,62 @@ let currentBeat = 0;
 // --- 初期化 ---
 resultMessage.textContent = "Click or Press Space to Start";
 chordDisplay.textContent = 'Note';
-drawSpectrum();
+drawSpectrum(); // 待機状態のアナライザを初回に描画
 
 // --- イベントリスナー ---
-document.body.addEventListener('click', togglePause);
+document.body.addEventListener('click', handleUserInteraction);
 window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+    if (e.code === 'Space') { e.preventDefault(); handleUserInteraction(); }
 });
 
 // --- メインロジック ---
-function togglePause() {
-    isPaused = !isPaused;
-    if (isPaused) {
-        if (audioContext && audioContext.state === 'running') audioContext.suspend();
-        resultMessage.textContent = 'Paused';
-    } else {
-        if (!audioContext) {
-            initAudio();
-        } else if (audioContext.state === 'suspended') {
+
+// ユーザーの最初の操作で、すべてを初期化して開始する
+function handleUserInteraction() {
+    if (audioContext) { // 既に開始されている場合は、ポーズ/再開
+        isPlaying = !isPlaying;
+        if (isPlaying) {
             audioContext.resume();
+            resultMessage.textContent = '';
+            lastBeatTime = performance.now(); // タイマーをリセット
+            requestAnimationFrame(update);
+        } else {
+            audioContext.suspend();
+            resultMessage.textContent = 'Paused';
         }
-        resultMessage.textContent = '';
-        lastBeatTime = performance.now();
-        requestAnimationFrame(update);
+        return;
     }
+    initAudio();
 }
 
-// --- 変更: 単一のループにすべてを統合 ---
-function update(currentTime) {
-    if (isPaused) return;
 
-    // 1. BPMメトロノーム処理
+function initAudio() {
+    resultMessage.textContent = 'Requesting MIC...';
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(stream => {
+            audioContext = new AudioContext();
+            audioContext.resume(); // 念のため再開
+
+            const source = audioContext.createMediaStreamSource(stream);
+            analyserNode = audioContext.createAnalyser();
+            analyserNode.fftSize = 2048;
+            source.connect(analyserNode);
+
+            // 正常に開始
+            isPlaying = true;
+            resultMessage.textContent = '';
+            lastBeatTime = performance.now();
+            requestAnimationFrame(update);
+        })
+        .catch(err => {
+            resultMessage.textContent = `Error: ${err.name}`;
+        });
+}
+
+function update(currentTime) {
+    if (!isPlaying) return;
+
+    // BPMメトロノーム処理
     if (currentTime - lastBeatTime > beatDuration) {
         lastBeatTime = currentTime;
         currentBeat = (currentBeat % 4) + 1;
@@ -62,11 +88,8 @@ function update(currentTime) {
         }
     }
 
-    // 2. アナライザ描画
     drawSpectrum();
-
-    // 3. 音声認識
-    detectPitch();
+    detectPitch(); // 音声認識は常に実行
 
     requestAnimationFrame(update);
 }
@@ -82,21 +105,6 @@ function updateMetronomeDots(beat) {
     metronomeDots.forEach((dot, index) => {
         dot.classList.toggle('active', index < beat);
     });
-}
-
-// --- 音声認識ロジック ---
-function initAudio() {
-    audioContext = new AudioContext();
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        .then(stream => {
-            const source = audioContext.createMediaStreamSource(stream);
-            analyserNode = audioContext.createAnalyser();
-            analyserNode.fftSize = 2048;
-            source.connect(analyserNode);
-        })
-        .catch(err => {
-            resultMessage.textContent = `Error: ${err.name}`;
-        });
 }
 
 function detectPitch() {
@@ -160,7 +168,7 @@ function drawSpectrum() {
     let x = 0;
     for (let i = 0; i < bufferLength; i++) {
         const barHeight = dataArray[i];
-        canvasCtx.fillStyle = 'rgb(150, 150, 150)'; // アナライザの色を少し薄く
+        canvasCtx.fillStyle = 'rgb(150, 150, 150)';
         canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
         x += barWidth + 1;
     }
