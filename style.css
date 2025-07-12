@@ -1,29 +1,87 @@
-body, html {
-    height: 100%;
-    margin: 0;
+body {
+    background-color: #f0f0f0;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
-    text-align: center;
-    flex-direction: column;
-    font-family: sans-serif;
-    background-color: #f0f0f0;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
 }
-#status {
-    font-size: 24px;
+
+#bpm-control {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    display: flex;
+    align-items: baseline;
+    font-size: 16px;
+    color: #888;
+}
+.bpm-label { font-size: 14px; margin-right: 8px; }
+#bpm-display { font-size: 24px; font-weight: bold; color: #555; }
+
+#metronome-dots {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    display: flex;
+    gap: 10px;
+}
+.beat-dot {
+    width: 15px;
+    height: 15px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: background-color 0.1s;
+}
+.beat-dot.active { background-color: #333; }
+
+.bottom-ui {
+    position: absolute;
+    bottom: 20px;
+    left: 40px;
+    right: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+}
+
+#sensor-dot {
+    width: 14px;
+    height: 14px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: background-color 0.1s;
+}
+#sensor-dot.correct { background-color: #4caf50; }
+#sensor-dot.incorrect { background-color: #f44336; }
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+#chord-display {
+    font-size: 32.5vw;
     font-weight: bold;
-    padding: 20px;
-    max-width: 80%;
 }
-#status.success {
-    color: #28a745; /* Green */
+
+#start-button-container {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
 }
-#status.failure {
-    color: #dc3545; /* Red */
-    word-break: break-all;
-}
-#test-button {
-    font-size: 20px;
-    padding: 15px 30px;
+#start-button {
+    font-size: 18px; 
+    font-weight: 300;
+    padding: 10px 40px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
     cursor: pointer;
 }
