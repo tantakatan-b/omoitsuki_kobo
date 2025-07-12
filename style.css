@@ -10,19 +10,22 @@ body {
     overflow: hidden;
 }
 
-#bpm-control {
+/* --- 左上コントロールのスタイル --- */
+.top-left-controls {
     position: absolute;
     top: 40px;
     left: 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+#bpm-control {
     display: flex;
     align-items: baseline;
     font-size: 16px;
     color: #888;
 }
-#bpm-control label {
-    font-size: 14px;
-    margin-right: 8px;
-}
+#bpm-control label { font-size: 14px; margin-right: 8px; }
 #bpm-input {
     font-size: 24px;
     font-weight: bold;
@@ -37,6 +40,14 @@ body {
 #bpm-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+#beep-toggle {
+    font-size: 14px;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    background-color: white;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
 #metronome-dots {
@@ -53,9 +64,7 @@ body {
     border-radius: 50%;
     transition: background-color 0.05s;
 }
-.beat-dot.active {
-    background-color: #333;
-}
+.beat-dot.active { background-color: #333; }
 
 .bottom-ui {
     position: absolute;
@@ -96,7 +105,16 @@ body {
     transform: translateX(-50%);
     text-align: center;
 }
-#start-button {
+#message-area {
+    font-size: 18px; 
+    font-weight: bold;
+    min-height: 25px;
+    color: #555;
+}
+#message-area.correct { color: #4caf50; }
+#message-area.incorrect { color: #f44336; }
+
+#start-button, #play-pause-button {
     font-size: 18px; 
     font-weight: 300;
     padding: 10px 40px;
@@ -104,4 +122,5 @@ body {
     border: 1px solid #ccc;
     background-color: white;
     cursor: pointer;
+    min-width: 130px; /* ボタン幅を揃える */
 }
