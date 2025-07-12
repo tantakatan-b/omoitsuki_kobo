@@ -70,11 +70,18 @@ body {
     font-weight: bold;
 }
 
-#start-button-container {
+/* 変更: メッセージとボタンのコンテナ */
+#control-area {
     position: absolute;
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
+    text-align: center;
+}
+#message-area {
+    font-size: 18px; 
+    font-weight: 300;
+    min-height: 25px; /* 高さを確保 */
 }
 #start-button {
     font-size: 18px; 
