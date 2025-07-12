@@ -8,10 +8,8 @@ body {
     height: 100vh;
     margin: 0;
     overflow: hidden;
-    cursor: pointer; /* クリックできることを示す */
 }
 
-/* --- BPM入力欄のスタイル --- */
 #bpm-control {
     position: absolute;
     top: 40px;
@@ -33,11 +31,11 @@ body {
     border: none;
     background-color: transparent;
     text-align: left;
-    -moz-appearance: textfield; /* Firefoxでのスピナー非表示 */
+    -moz-appearance: textfield;
 }
 #bpm-input::-webkit-outer-spin-button,
 #bpm-input::-webkit-inner-spin-button {
-  -webkit-appearance: none; /* Chrome/Safariでのスピナー非表示 */
+  -webkit-appearance: none;
   margin: 0;
 }
 
@@ -91,16 +89,19 @@ body {
     font-weight: bold;
 }
 
-/* --- メッセージ表示エリアのスタイル --- */
-#message-area {
+#control-area {
     position: absolute;
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 24px;
-    font-weight: bold;
-    min-height: 30px;
-    color: #555;
+    text-align: center;
 }
-#message-area.correct { color: #4caf50; }
-#message-area.incorrect { color: #f44336; }
+#start-button {
+    font-size: 18px; 
+    font-weight: 300;
+    padding: 10px 40px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
+}
