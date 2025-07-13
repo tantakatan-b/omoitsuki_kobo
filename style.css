@@ -11,14 +11,14 @@ body {
 }
 
 /* --- 上部UI --- */
-.top-left-controls {
+.top-controls {
     position: absolute;
     top: 40px;
     left: 40px;
     display: flex;
     align-items: center;
     gap: 20px;
-    height: 30px; /* 高さの中心を揃えるための基準 */
+    height: 30px;
 }
 #bpm-control {
     display: flex;
@@ -57,7 +57,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 30px; /* 高さの中心を揃えるための基準 */
+    height: 30px;
 }
 .beat-dot {
     width: 15px;
@@ -105,14 +105,14 @@ body {
 }
 #control-area {
     position: absolute;
-    bottom: 35px; /* アナライザやセンサーと高さを合わせる */
+    bottom: 35px;
     left: 50%;
     transform: translateX(-50%);
-    height: 50px; /* 高さを合わせる */
+    height: 50px;
     display: flex;
     align-items: center;
 }
-#start-button {
+#start-button, #play-pause-button {
     font-size: 18px; 
     font-weight: 300;
     color: #555;
@@ -120,5 +120,8 @@ body {
     border: none;
     cursor: pointer;
     padding: 10px 20px;
+    min-width: 130px;
 }
-#start-button:hover { color: #000; }
+#start-button:hover, #play-pause-button:hover {
+    color: #000;
+}
