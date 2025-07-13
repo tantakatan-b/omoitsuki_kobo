@@ -10,20 +10,15 @@ body {
     overflow: hidden;
 }
 
-/* --- 上部UI --- */
-.top-left-controls {
+/* --- 変更: 上部UIを個別に絶対配置 --- */
+#bpm-control {
     position: absolute;
     top: 40px;
     left: 40px;
     display: flex;
-    align-items: center;
-    height: 30px;
-}
-#bpm-control {
-    display: flex;
     align-items: baseline;
     color: #888;
-    margin-right: 20px; /* gapからmarginに変更 */
+    height: 30px; /* 高さを指定して他の要素と揃える */
 }
 #bpm-control label {
     font-size: 14px;
@@ -44,7 +39,15 @@ body {
   -webkit-appearance: none;
   margin: 0;
 }
+
 #beep-toggle {
+    position: absolute;
+    top: 40px;
+    left: 145px; /* BPMコントロールの隣に手動で配置 */
+    height: 30px; /* 高さを指定して他の要素と揃える */
+    display: flex;
+    align-items: center;
+
     font-size: 16px;
     font-weight: 300;
     color: #888;
@@ -59,6 +62,7 @@ body {
     color: #333;
 }
 #beep-toggle:hover { color: #333; }
+
 
 #metronome-dots {
     position: absolute;
