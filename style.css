@@ -10,15 +10,68 @@ body {
     overflow: hidden;
 }
 
-/* ... 上部UIのスタイルは変更なし ... */
-.top-left-controls, #bpm-control, #bpm-input, #beep-toggle, #metronome-dots, .beat-dot {
-    /* ... */
+/* --- 上部UI --- */
+.top-left-controls {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 30px; /* 高さの中心を揃えるための基準 */
 }
-#beep-toggle.active { color: #333; }
+#bpm-control {
+    display: flex;
+    align-items: baseline;
+    color: #888;
+}
+#bpm-control .bpm-label {
+    font-size: 14px;
+    margin-right: 8px;
+}
+#bpm-control #bpm-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #555;
+}
+#beep-toggle {
+    font-size: 16px;
+    font-weight: 300;
+    color: #888;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.5;
+}
+#beep-toggle.active {
+    opacity: 1.0;
+    color: #333;
+}
+#beep-toggle:hover { color: #333; }
 
+#metronome-dots {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 30px; /* 高さの中心を揃えるための基準 */
+}
+.beat-dot {
+    width: 15px;
+    height: 15px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: background-color 0.05s;
+}
+.beat-dot.active { background-color: #333; }
+
+/* --- 下部UI --- */
 .bottom-ui {
     position: absolute;
-    bottom: 30px;
+    bottom: 35px;
     left: 40px;
     right: 40px;
     display: flex;
@@ -26,40 +79,40 @@ body {
     align-items: center;
     height: 50px;
 }
-#spectrum-canvas, #sensor-dot { /* ... */ }
-#sensor-dot.correct, #sensor-dot.incorrect { /* ... */ }
+#spectrum-canvas, #sensor-dot {
+    display: block;
+}
+#sensor-dot {
+    width: 14px;
+    height: 14px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: background-color 0.1s;
+}
+#sensor-dot.correct { background-color: #4caf50; }
+#sensor-dot.incorrect { background-color: #f44336; }
 
+/* --- 中央UI --- */
 .container {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
 }
-
-/* --- 変更: コード表示のスタイル --- */
 #chord-display {
-    display: flex; /* ルートと装飾を横並びにする */
-    align-items: flex-start; /* 上揃え */
+    font-size: 32.5vw;
     font-weight: bold;
 }
-#chord-root {
-    font-size: 32.5vw;
-}
-#chord-suffix {
-    font-size: 19.5vw; /* 32.5vwの60% */
-    line-height: 1.2; /* 見た目の高さを微調整 */
-    margin-left: 0.05em;
-}
-
-/* --- 変更: メッセージエリアを削除し、操作ボタンエリアを調整 --- */
 #control-area {
     position: absolute;
-    bottom: 35px;
+    bottom: 35px; /* アナライザやセンサーと高さを合わせる */
     left: 50%;
     transform: translateX(-50%);
-    text-align: center;
+    height: 50px; /* 高さを合わせる */
+    display: flex;
+    align-items: center;
 }
-#start-button, #play-pause-button {
+#start-button {
     font-size: 18px; 
     font-weight: 300;
     color: #555;
@@ -67,6 +120,5 @@ body {
     border: none;
     cursor: pointer;
     padding: 10px 20px;
-    min-width: 130px;
 }
-#start-button:hover, #play-pause-button:hover { color: #000; }
+#start-button:hover { color: #000; }
