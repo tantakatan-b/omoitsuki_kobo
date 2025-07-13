@@ -26,7 +26,7 @@ let currentChord = 'Note';
 let audioContext, analyserNode;
 let isPlaying = false;
 let isBeepEnabled = true;
-let bpm = 120;
+let bpm = 80;
 let lastBeatTime = 0;
 let currentBeat = 0;
 
