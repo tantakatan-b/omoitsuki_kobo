@@ -10,8 +10,7 @@ body {
     overflow: hidden;
     cursor: pointer;
 }
-
-.top-controls {
+.top-ui {
     position: absolute;
     top: 40px;
     left: 40px;
@@ -51,7 +50,6 @@ body {
     opacity: 0.5;
 }
 #beep-toggle.active { opacity: 1.0; color: #333; }
-#beep-toggle:hover { color: #333; }
 
 #metronome-dots {
     position: absolute;
@@ -106,16 +104,21 @@ body {
 #chord-root { font-size: 32.5vw; }
 #chord-suffix { font-size: 19.5vw; margin-left: 0.05em; }
 
-#message-area {
+#control-area {
     position: absolute;
-    bottom: 55%; /* コードの少し上に配置 */
+    bottom: 35px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 24px; 
+    height: 50px;
+    display: flex;
+    align-items: center;
+}
+#message-area {
+    font-size: 18px; 
     font-weight: bold;
-    min-height: 30px;
+    min-height: 25px;
     color: #555;
-    transition: opacity 0.3s;
+    text-align: center;
 }
 #message-area.correct { color: #4caf50; }
 #message-area.incorrect { color: #f44336; }
