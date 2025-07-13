@@ -17,13 +17,13 @@ body {
     left: 40px;
     display: flex;
     align-items: center;
-    gap: 20px;
     height: 30px;
 }
 #bpm-control {
     display: flex;
     align-items: baseline;
     color: #888;
+    margin-right: 20px; /* gapからmarginに変更 */
 }
 #bpm-control label {
     font-size: 14px;
@@ -111,7 +111,7 @@ body {
 }
 #chord-display {
     display: flex;
-    align-items: baseline; /* ここを修正しました */
+    align-items: baseline;
     font-weight: bold;
 }
 #chord-root {
