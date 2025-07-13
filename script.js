@@ -1,9 +1,12 @@
 // HTML要素
 const chordDisplay = document.getElementById('chord-display');
+const chordRoot = document.getElementById('chord-root');
+const chordSuffix = document.getElementById('chord-suffix');
 const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
 const startButton = document.getElementById('start-button');
 const playPauseButton = document.getElementById('play-pause-button');
+const bpmInput = document.getElementById('bpm-input');
 const beepToggleButton = document.getElementById('beep-toggle');
 const metronomeDots = document.querySelectorAll('.beat-dot');
 const canvasCtx = spectrumCanvas.getContext('2d');
@@ -28,13 +31,36 @@ let lastBeatTime = 0;
 let currentBeat = 0;
 
 // --- 初期化 ---
-chordDisplay.textContent = 'Note';
+chordRoot.textContent = 'Note';
+chordSuffix.textContent = '';
 drawSpectrum();
 
 // --- イベントリスナー ---
 startButton.addEventListener('click', initAudio);
 playPauseButton.addEventListener('click', togglePlayPause);
 beepToggleButton.addEventListener('click', toggleBeep);
+window.addEventListener('keydown', (e) => {
+    if (e.target === bpmInput) return; // BPM入力中はキー操作を無効
+    if (e.code === 'KeyB') toggleBeep();
+    if (e.code === 'Space') {
+        e.preventDefault();
+        if (!audioContext) initAudio();
+        else togglePlayPause();
+    }
+});
+bpmInput.addEventListener('input', (e) => {
+    const newBpm = parseInt(e.target.value, 10);
+    if (!isNaN(newBpm)) {
+        bpm = newBpm;
+    }
+});
+bpmInput.addEventListener('change', (e) => {
+    let finalBpm = parseInt(e.target.value, 10);
+    if (isNaN(finalBpm) || finalBpm < 40) finalBpm = 40;
+    if (finalBpm > 240) finalBpm = 240;
+    e.target.value = finalBpm;
+    bpm = finalBpm;
+});
 
 // --- メインロジック ---
 function initAudio() {
@@ -59,7 +85,7 @@ function handleStream(stream) {
     analyserNode.fftSize = 2048;
     source.connect(analyserNode);
 
-    togglePlayPause(); // 最初の再生を開始
+    togglePlayPause();
 }
 
 function handleError(err) {
@@ -107,7 +133,15 @@ function changeChord() {
     let newChord;
     do { newChord = chordList[Math.floor(Math.random() * chordList.length)]; } while (newChord === currentChord);
     currentChord = newChord;
-    chordDisplay.textContent = currentChord;
+    
+    const match = currentChord.match(/^([A-G][#b♭]?)(.*)/);
+    if (match) {
+        chordRoot.textContent = match[1];
+        chordSuffix.textContent = match[2];
+    } else {
+        chordRoot.textContent = currentChord;
+        chordSuffix.textContent = '';
+    }
 }
 
 function updateMetronomeDots(beat) {
