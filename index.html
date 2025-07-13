@@ -7,23 +7,23 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="top-controls">
+    <div class="top-left-controls">
         <div id="bpm-control">
-            <label for="bpm-input">BPM</label>
-            <input type="number" id="bpm-input" value="60" min="40" max="240">
+            <span class="bpm-label">BPM</span>
+            <span id="bpm-value">120</span>
         </div>
         <button id="beep-toggle">Beep</button>
     </div>
 
     <div id="metronome-dots">
-        <div class="beat-dot"></div><div class="beat-dot"></div><div class="beat-dot"></div><div class="beat-dot"></div>
+        <div class="beat-dot"></div>
+        <div class="beat-dot"></div>
+        <div class="beat-dot"></div>
+        <div class="beat-dot"></div>
     </div>
 
     <div class="container">
-        <div id="chord-display" class="display">
-            <span id="chord-root">Note</span>
-            <span id="chord-suffix"></span>
-        </div>
+        <div id="chord-display">Note</div>
     </div>
     
     <div class="bottom-ui">
@@ -33,7 +33,6 @@
     
     <div id="control-area">
         <button id="start-button">START</button>
-        <button id="play-pause-button" style="display: none;">PAUSE</button>
     </div>
 
     <script src="script.js"></script>
