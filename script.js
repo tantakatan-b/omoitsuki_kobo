@@ -3,17 +3,26 @@ const chordDisplay = document.getElementById('chord-display');
 const spectrumCanvas = document.getElementById('spectrum-canvas');
 const sensorDot = document.getElementById('sensor-dot');
 const startButton = document.getElementById('start-button');
-const controlArea = document.getElementById('control-area');
+const playPauseButton = document.getElementById('play-pause-button');
 const beepToggleButton = document.getElementById('beep-toggle');
 const metronomeDots = document.querySelectorAll('.beat-dot');
 const canvasCtx = spectrumCanvas.getContext('2d');
 
 // 定数と変数
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const noteList = ['C', 'D', 'E', 'F', 'G', 'A', 'B']; // 単音モードで安定性を確保
-let currentNote = 'Note';
-let audioContext, analyserNode;
+const chordFormulas = {
+    'C': ['C', 'E', 'G'], 'G': ['G', 'B', 'D'], 'D': ['D', 'F#', 'A'], 'A': ['A', 'C#', 'E'], 'E': ['E', 'G#', 'B'], 'B': ['B', 'D#', 'F#'], 'F#': ['F#', 'A#', 'C#'], 'C#': ['C#', 'F', 'G#'], 'F': ['F', 'A', 'C'], 'B♭': ['A#', 'D', 'F'], 'E♭': ['D#', 'G', 'A#'], 'A♭': ['G#', 'C', 'D#'],
+    'Am': ['A', 'C', 'E'], 'Em': ['E', 'G', 'B'], 'Bm': ['B', 'D', 'F#'], 'F#m': ['F#', 'A', 'C#'], 'C#m': ['C#', 'E', 'G#'], 'G#m': ['G#', 'B', 'D#'], 'D#m': ['D#', 'F#', 'A#'], 'A#m': ['A#', 'C#', 'F'], 'Dm': ['D', 'F', 'A'], 'Gm': ['G', 'A#', 'D'], 'Cm': ['C', 'D#', 'G'], 'Fm': ['F', 'G#', 'C'],
+    'C7': ['C', 'E', 'G', 'A#'], 'G7': ['G', 'B', 'D', 'F'], 'D7': ['D', 'F#', 'A', 'C'], 'A7': ['A', 'C#', 'E', 'G'], 'E7': ['E', 'G#', 'B', 'D'], 'B7': ['B', 'D#', 'F#', 'A'],
+    'CM7': ['C', 'E', 'G', 'B'], 'GM7': ['G', 'B', 'D', 'F#'], 'DM7': ['D', 'F#', 'A', 'C#'], 'AM7': ['A', 'C#', 'E', 'G#'], 'EM7': ['E', 'G#', 'B', 'D#'], 'FM7': ['F', 'A', 'C', 'E'],
+    'Am7': ['A', 'C', 'E', 'G'], 'Em7': ['E', 'G', 'B', 'D'], 'Bm7': ['B', 'D', 'F#', 'A'], 'F#m7': ['F#', 'A', 'C#', 'E'], 'C#m7': ['C#', 'E', 'G#', 'B'], 'Dm7': ['D', 'F', 'A', 'C'],
+};
+const chordList = Object.keys(chordFormulas);
+let currentChord = 'Note';
 
+let audioContext, analyserNode;
+let isPlaying = false;
+let isBeepEnabled = true;
 let bpm = 120;
 let lastBeatTime = 0;
 let currentBeat = 0;
@@ -24,6 +33,8 @@ drawSpectrum();
 
 // --- イベントリスナー ---
 startButton.addEventListener('click', initAudio);
+playPauseButton.addEventListener('click', togglePlayPause);
+beepToggleButton.addEventListener('click', toggleBeep);
 
 // --- メインロジック ---
 function initAudio() {
@@ -31,11 +42,8 @@ function initAudio() {
     startButton.textContent = '...';
     startButton.disabled = true;
 
-    // 1. AudioContextはユーザー操作に応じて作成
     audioContext = new AudioContext();
-    // 2. 作成直後にresume()を呼んでおく
     audioContext.resume().then(() => {
-        // 3. resumeが成功してからマイクを要求
         navigator.mediaDevices.getUserMedia({ audio: true, video: false })
             .then(handleStream)
             .catch(handleError);
@@ -43,32 +51,50 @@ function initAudio() {
 }
 
 function handleStream(stream) {
-    controlArea.style.display = 'none'; // スタートボタンを隠す
+    startButton.style.display = 'none';
+    playPauseButton.style.display = 'block';
     
     const source = audioContext.createMediaStreamSource(stream);
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 2048;
     source.connect(analyserNode);
 
-    lastBeatTime = performance.now();
-    update(); // 4. 全てが成功してからループを開始
+    togglePlayPause(); // 最初の再生を開始
 }
 
 function handleError(err) {
-    controlArea.innerHTML = `<span style="color: red;">Error: ${err.name}</span>`;
-    console.error('Error:', err);
+    document.getElementById('control-area').innerHTML = `<span style="color: red;">Error: ${err.name}</span>`;
+}
+
+function togglePlayPause() {
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+        audioContext.resume();
+        playPauseButton.textContent = 'PAUSE';
+        lastBeatTime = performance.now() - ((60000 / bpm) * currentBeat);
+        update();
+    } else {
+        audioContext.suspend();
+        playPauseButton.textContent = 'PLAY';
+    }
+}
+
+function toggleBeep() {
+    isBeepEnabled = !isBeepEnabled;
+    beepToggleButton.classList.toggle('active', isBeepEnabled);
 }
 
 function update() {
+    if (!isPlaying) return;
     const beatDuration = 60000 / bpm;
 
     if (performance.now() - lastBeatTime > beatDuration) {
         lastBeatTime = performance.now();
         currentBeat = (currentBeat + 1) % 4;
         updateMetronomeDots(currentBeat);
-        // playBeep(currentBeat); // ビープ音は一度コメントアウトして安定性を確認
+        if (isBeepEnabled) playBeep(currentBeat);
         if (currentBeat === 0) {
-            changeNote();
+            changeChord();
         }
     }
     drawSpectrum();
@@ -77,17 +103,32 @@ function update() {
     requestAnimationFrame(update);
 }
 
-function changeNote() {
-    let newNote;
-    do { newNote = noteList[Math.floor(Math.random() * noteList.length)]; } while (newNote === currentNote);
-    currentNote = newNote;
-    chordDisplay.textContent = currentNote;
+function changeChord() {
+    let newChord;
+    do { newChord = chordList[Math.floor(Math.random() * chordList.length)]; } while (newChord === currentChord);
+    currentChord = newChord;
+    chordDisplay.textContent = currentChord;
 }
 
 function updateMetronomeDots(beat) {
     metronomeDots.forEach((dot, index) => {
         dot.classList.toggle('active', index === beat);
     });
+}
+
+function playBeep(beat) {
+    if (!audioContext || audioContext.state === 'suspended') return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    oscillator.frequency.value = (beat === 0) ? 880.0 : 440.0;
+    oscillator.type = 'sine';
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.05);
 }
 
 function detectPitch() {
@@ -100,7 +141,8 @@ function detectPitch() {
     if (rms > 0.02) {
         const noteName = findFundamentalFreq(buffer, audioContext.sampleRate);
         if (noteName) {
-            if (noteName.charAt(0) === currentNote) {
+            const correctNotes = chordFormulas[currentChord];
+            if (correctNotes && correctNotes.includes(noteName)) {
                 flashSensor('correct');
             } else {
                 flashSensor('incorrect');
@@ -133,10 +175,7 @@ function flashSensor(className) {
 }
 
 function drawSpectrum() {
-    if (!analyserNode) {
-        canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
-        return;
-    }
+    if (!analyserNode) return;
     const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
     analyserNode.getByteFrequencyData(dataArray);
     canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
@@ -148,18 +187,4 @@ function drawSpectrum() {
         canvasCtx.fillRect(x, spectrumCanvas.height - barHeight, barWidth, barHeight);
         x += barWidth + 1;
     }
-}
-
-// playBeep関数はひとまず残しますが、updateから呼ばれていません
-function playBeep(beat) {
-    if (!audioContext || audioContext.state === 'suspended') return;
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-    oscillator.frequency.value = (beat === 0) ? 880.0 : 440.0;
-    oscillator.type = 'sine';
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.05);
 }
