@@ -11,7 +11,7 @@ body {
 }
 
 /* --- 上部UI --- */
-.top-controls {
+.top-left-controls {
     position: absolute;
     top: 40px;
     left: 40px;
@@ -111,15 +111,14 @@ body {
 }
 #chord-display {
     display: flex;
-    align-items: flex-start;
+    align-items: baseline; /* ここを修正しました */
     font-weight: bold;
 }
 #chord-root {
     font-size: 32.5vw;
 }
 #chord-suffix {
-    font-size: 19.5vw; /* 32.5vwの60% */
-    line-height: 1.2;
+    font-size: 19.5vw;
     margin-left: 0.05em;
 }
 #control-area {
