@@ -25,14 +25,24 @@ body {
     align-items: baseline;
     color: #888;
 }
-#bpm-control .bpm-label {
+#bpm-control label {
     font-size: 14px;
     margin-right: 8px;
 }
-#bpm-control #bpm-value {
+#bpm-input {
     font-size: 24px;
     font-weight: bold;
     color: #555;
+    width: 70px;
+    border: none;
+    background-color: transparent;
+    text-align: left;
+    -moz-appearance: textfield;
+}
+#bpm-input::-webkit-outer-spin-button,
+#bpm-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 #beep-toggle {
     font-size: 16px;
@@ -100,8 +110,17 @@ body {
     height: 100vh;
 }
 #chord-display {
-    font-size: 32.5vw;
+    display: flex;
+    align-items: flex-start;
     font-weight: bold;
+}
+#chord-root {
+    font-size: 32.5vw;
+}
+#chord-suffix {
+    font-size: 19.5vw; /* 32.5vwの60% */
+    line-height: 1.2;
+    margin-left: 0.05em;
 }
 #control-area {
     position: absolute;
