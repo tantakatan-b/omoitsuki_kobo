@@ -23,18 +23,13 @@ let currentChord = 'Note';
 let audioContext, analyserNode;
 let isPlaying = false;
 let isBeepEnabled = true;
-let bpm = 80; // 初期値を80に変更
+let bpm = 80;
 let lastBeatTime = 0;
 let currentBeat = 0;
-let roundSuccess = false; // 1小節内の成功フラグ
 
-// 初期化
-chordRoot.textContent = 'Note';
-chordSuffix.textContent = '';
 messageArea.textContent = 'Click or Press Space to Start';
 drawSpectrum();
 
-// イベントリスナー
 document.body.addEventListener('click', handleUserInteraction);
 window.addEventListener('keydown', (e) => {
     if (e.target === bpmInput) return;
@@ -44,15 +39,23 @@ window.addEventListener('keydown', (e) => {
         handleUserInteraction();
     }
 });
-bpmInput.addEventListener('input', (e) => { /* ... 変更なし ... */ });
-bpmInput.addEventListener('change', (e) => { /* ... 変更なし ... */ });
+bpmInput.addEventListener('input', (e) => {
+    const newBpm = parseInt(e.target.value, 10);
+    if (!isNaN(newBpm)) bpm = newBpm;
+});
+bpmInput.addEventListener('change', (e) => {
+    let finalBpm = parseInt(e.target.value, 10);
+    if (isNaN(finalBpm) || finalBpm < 40) finalBpm = 40;
+    if (finalBpm > 240) finalBpm = 240;
+    e.target.value = finalBpm;
+    bpm = finalBpm;
+});
 beepToggleButton.addEventListener('click', (e) => {
-    e.stopPropagation(); // ボディのクリックイベントを発動させない
+    e.stopPropagation();
     toggleBeep();
 });
 
 
-// メインロジック
 function handleUserInteraction() {
     if (!audioContext) {
         initAudio();
@@ -76,7 +79,10 @@ function handleStream(stream) {
     analyserNode = audioContext.createAnalyser();
     analyserNode.fftSize = 2048;
     source.connect(analyserNode);
-    togglePlayPause();
+    isPlaying = true;
+    messageArea.textContent = 'PAUSE'; // 初期状態はPAUSEボタン
+    lastBeatTime = performance.now();
+    update();
 }
 
 function handleError(err) {
@@ -86,35 +92,31 @@ function handleError(err) {
 function togglePlayPause() {
     isPlaying = !isPlaying;
     if (isPlaying) {
-        messageArea.textContent = '';
         audioContext.resume();
-        lastBeatTime = performance.now();
-        changeChord(); // 最初のコードをすぐに表示
-        updateMetronomeDots(3); // 最初の拍の準備
-        requestAnimationFrame(update);
+        messageArea.textContent = 'PAUSE';
+        lastBeatTime = performance.now() - ((60000 / bpm) * currentBeat);
+        update();
     } else {
         audioContext.suspend();
-        messageArea.textContent = 'Paused';
+        messageArea.textContent = 'PLAY';
     }
 }
 
-function toggleBeep() { /* ... 変更なし ... */ }
-const beatDuration = () => 60000 / bpm;
+function toggleBeep() {
+    isBeepEnabled = !isBeepEnabled;
+    beepToggleButton.classList.toggle('active', isBeepEnabled);
+}
 
-function update(currentTime) {
+function update() {
     if (!isPlaying) return;
+    const beatDuration = 60000 / bpm;
 
-    if (currentTime - lastBeatTime > beatDuration()) {
-        lastBeatTime = currentTime;
+    if (performance.now() - lastBeatTime > beatDuration) {
+        lastBeatTime = performance.now();
         currentBeat = (currentBeat + 1) % 4;
         updateMetronomeDots(currentBeat);
         if (isBeepEnabled) playBeep(currentBeat);
-        
         if (currentBeat === 0) {
-            // 4拍終わった時点で成功していなければOops!
-            if (!roundSuccess) {
-                showResultMessage('Oops!', 'incorrect');
-            }
             changeChord();
         }
     }
@@ -124,7 +126,6 @@ function update(currentTime) {
 }
 
 function changeChord() {
-    roundSuccess = false; // 新しいラウンドの成功フラグをリセット
     let newChord;
     do { newChord = chordList[Math.floor(Math.random() * chordList.length)]; } while (newChord === currentChord);
     currentChord = newChord;
@@ -139,8 +140,26 @@ function changeChord() {
     }
 }
 
-function updateMetronomeDots(beat) { /* ... 変更なし ... */ }
-function playBeep(beat) { /* ... 変更なし ... */ }
+function updateMetronomeDots(beat) {
+    metronomeDots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === beat);
+    });
+}
+
+function playBeep(beat) {
+    if (!audioContext || audioContext.state === 'suspended') return;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    oscillator.frequency.value = (beat === 0) ? 880.0 : 440.0;
+    oscillator.type = 'sine';
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.05);
+}
 
 function detectPitch() {
     if (!analyserNode) return;
@@ -150,15 +169,11 @@ function detectPitch() {
     const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / buffer.length);
 
     if (rms > 0.02) {
-        const detectedNote = findFundamentalFreq(buffer, audioContext.sampleRate);
-        if (detectedNote) {
+        const noteName = findFundamentalFreq(buffer, audioContext.sampleRate);
+        if (noteName) {
             const correctNotes = chordFormulas[currentChord];
-            if (correctNotes && correctNotes.includes(detectedNote)) {
+            if (correctNotes && correctNotes.includes(noteName)) {
                 flashSensor('correct');
-                if (!roundSuccess) {
-                    roundSuccess = true;
-                    showResultMessage('nice!', 'correct');
-                }
             } else {
                 flashSensor('incorrect');
             }
@@ -166,8 +181,40 @@ function detectPitch() {
     }
 }
 
-function showResultMessage(message, className) { /* ... 変更なし ... */ }
-function findFundamentalFreq(buffer, sampleRate){ /* ... 変更なし ... */ }
-function frequencyToNoteName(frequency){ /* ... 変更なし ... */ }
-function flashSensor(className){ /* ... 変更なし ... */ }
-function drawSpectrum(){ /* ... 変更なし ... */ }
+function findFundamentalFreq(buffer, sampleRate) {
+    let bestCorrelation = 0, bestLag = -1;
+    for (let lag = 40; lag < 1000; lag++) {
+        let correlation = 0;
+        for (let i = 0; i < analyserNode.fftSize - lag; i++) {
+            correlation += buffer[i] * buffer[i + lag];
+        }
+        if (correlation > bestCorrelation) { bestCorrelation = correlation; bestLag = lag; }
+    }
+    if (bestLag === -1) return null;
+    return frequencyToNoteName(sampleRate / bestLag);
+}
+
+function frequencyToNoteName(frequency) {
+    const midiNum = 69 + 12 * Math.log2(frequency / 440);
+    return noteStrings[Math.round(midiNum) % 12];
+}
+
+function flashSensor(className) {
+    sensorDot.className = `active ${className}`;
+    setTimeout(() => { sensorDot.className = ''; }, 200);
+}
+
+function drawSpectrum() {
+    if (!analyserNode) return;
+    const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+    analyserNode.getByteFrequencyData(dataArray);
+    canvasCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+    const barWidth = (spectrumCanvas.width / dataArray.length) * 2.5;
+    let x = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+        const barHeight = dataArray[i] / 2;
+        canvasCtx.fillStyle = 'rgb(150, 150, 150)';
+        canvasCtx.fillRect(x, spectrumCanvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+    }
+}
