@@ -3,41 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>omoitsuki_kobo</title>
-    <link rel="stylesheet" href="portfolio_style.css">
+    <title>Guitar Diagram</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header class="portfolio-header">
-        <h1>OMOITSUKI KO-BO. is a place where everyday ideas take shape.</h1>
-    </header>
 
-    <main class="portfolio-grid">
-        <!-- 1つ目のプロジェクト -->
-        <a href="codetraining/index.html" class="project-item">
-            <div class="project-thumbnail">
-                <img src="codetraining/thumbnail_codetraining.jpg" alt="Code Training Project" onerror="this.onerror=null;this.src='https://placehold.co/640x360/f0f0f0/ccc?text=Image+Not+Found';">
-            </div>
-            <div class="project-info">
-                <h2 class="project-title">Code Training</h2>
-                <p class="project-date">2024.07</p>
-            </div>
-        </a>
+    <div class="diagram-container">
+        <!-- SVGで指板を描画するエリア -->
+        <svg id="fretboard-svg" viewBox="0 0 150 100"></svg>
 
-        <!-- 2つ目のプロジェクト (ここから追加) -->
-        <a href="scale_training/index.html" class="project-item">
-            <div class="project-thumbnail">
-                <!-- サムネイルはホワイトボックスのプレースホルダー画像 -->
-                <img src="https://placehold.co/640x360/ffffff/ffffff?text=." alt="Scale Training Project">
-            </div>
-            <div class="project-info">
-                <h2 class="project-title">Scale Training</h2>
-                <p class="project-date">2024.08</p>
-            </div>
-        </a>
-        <!-- (ここまで追加) -->
+        <!-- コード名を表示するエリア -->
+        <h2 id="chord-name-display" class="chord-name"></h2>
+    </div>
 
-        <!-- 新しい作品ができたら、ここに<a href=...>を追加していく -->
-
-    </main>
+    <script src="script.js"></script>
 </body>
 </html>
