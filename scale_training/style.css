@@ -1,0 +1,46 @@
+body {
+    background-color: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.diagram-container {
+    text-align: center;
+}
+
+.chord-name {
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+#fretboard .fret {
+    stroke: #ccc;
+    stroke-width: 2;
+}
+
+#fretboard .string {
+    stroke: #aaa;
+    stroke-width: 1;
+}
+
+#fretboard .nut {
+    stroke: #333;
+    stroke-width: 8;
+}
+
+/* 押さえる位置のドットのスタイル */
+.dot {
+    fill: #333;
+}
+
+/* 開放弦のマークのスタイル */
+.open-string {
+    fill: none;
+    stroke: #333;
+    stroke-width: 2;
+}
