@@ -1,3 +1,4 @@
+/* 全体のレイアウト設定 */
 body {
     background-color: #f0f0f0;
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
@@ -9,38 +10,49 @@ body {
 }
 
 .diagram-container {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px; /* ダイアグラムとコード名の間隔 */
 }
 
+/* コード名のスタイル */
 .chord-name {
-    font-size: 48px;
+    font-size: 10vw; /* 画面幅に応じてサイズを調整 */
     font-weight: bold;
-    margin-bottom: 10px;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
 }
 
-#fretboard .fret {
-    stroke: #ccc;
-    stroke-width: 2;
+/* 指板(SVG)のスタイル */
+#fretboard-svg {
+    width: 300px;
+    height: 300px;
 }
 
-#fretboard .string {
+/* 指板の各パーツのスタイル */
+.string {
     stroke: #aaa;
     stroke-width: 1;
 }
-
-#fretboard .nut {
-    stroke: #333;
-    stroke-width: 8;
+.fret {
+    stroke: #ccc;
+    stroke-width: 1;
 }
-
-/* 押さえる位置のドットのスタイル */
+.nut {
+    stroke: #333;
+    stroke-width: 6;
+}
 .dot {
     fill: #333;
 }
-
-/* 開放弦のマークのスタイル */
 .open-string {
     fill: none;
     stroke: #333;
-    stroke-width: 2;
+    stroke-width: 1.5;
+}
+.muted-string {
+    stroke: #333;
+    stroke-width: 1.5;
 }
